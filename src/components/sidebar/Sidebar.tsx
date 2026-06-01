@@ -10,6 +10,7 @@ import { calcPrice } from "../../lib/pricing";
 import { PILLAR_MODELS } from "../../data/posts";
 import type { PanelModel } from "../../data/panels";
 import type { PillarModel, PillarStyle } from "../../data/posts";
+import { PANEL_MODELS } from "../../data/panels";
 
 export default function Sidebar() {
   const fenceHeightCm = useDesignerStore((s) => s.fenceHeightCm);
@@ -19,7 +20,6 @@ export default function Sidebar() {
   const singlePanel = useDesignerStore((s) => s.singlePanel);
   const setSinglePanel = useDesignerStore((s) => s.setSinglePanel);
   const rows = useDesignerStore((s) => s.rows);
-  const setRowPanel = useDesignerStore((s) => s.setRowPanel);
   const selectedPillarStyle = useDesignerStore((s) => s.selectedPillarStyle);
   const setSelectedPillarStyle = useDesignerStore((s) => s.setSelectedPillarStyle);
   const activePillar = useDesignerStore((s) => s.activePillar);
