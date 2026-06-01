@@ -1,12 +1,12 @@
 import { create } from "zustand";
 import { buildFence } from "../lib/geometry";
-import type { Point, FenceItem } from "../lib/geometry";
+import type { Point, FenceItem, House } from "../lib/geometry";
 import { PANEL_MODELS, getPanelsForSingleModel } from "../data/panels";
 import type { PanelModel } from "../data/panels";
-import { getCompatiblePillar } from "../data/posts";
+import { getCompatiblePillar, PILLAR_MODELS } from "../data/posts";
 import type { PillarModel, PillarStyle } from "../data/posts";
 
-export type { Point, FenceItem };
+export type { Point, FenceItem, House };
 
 export type FenceRow = {
   heightCm: number;
@@ -18,23 +18,18 @@ export const FENCE_HEIGHTS_CM = [
   150, 160, 180, 190, 200, 210, 220, 230, 240, 250,
 ];
 
-// Какие панели влезают в оставшуюся высоту
+// Какие панели влезают в оставшуюся высоту И после которых остаток набираем
 export function getAvailablePanels(remainingCm: number): PanelModel[] {
   return PANEL_MODELS.filter((p) => {
     if (p.heightCm > remainingCm) return false;
-    const afterThis = remainingCm - p.heightCm;
-    // После выбора этой панели остаток должен быть набираем
-    // (0 = готово, или можно набрать комбинацией 50 и 30)
-    return canReach(afterThis);
+    return canReach(remainingCm - p.heightCm);
   });
 }
 
-// Проверяем можно ли набрать высоту комбинацией доступных панелей
 function canReach(targetCm: number): boolean {
   if (targetCm === 0) return true;
   if (targetCm < 0) return false;
-  const heights = [...new Set(PANEL_MODELS.map((p) => p.heightCm))]; // [50, 30]
-  // Динамическое программирование
+  const heights = [...new Set(PANEL_MODELS.map((p) => p.heightCm))];
   const dp = new Array(targetCm + 1).fill(false);
   dp[0] = true;
   for (let i = 1; i <= targetCm; i++) {
@@ -45,20 +40,14 @@ function canReach(targetCm: number): boolean {
   return dp[targetCm];
 }
 
-// Текущая заполненная высота
 export function getFilledHeight(rows: FenceRow[]): number {
   return rows.reduce((s, r) => s + r.heightCm, 0);
 }
 
+
 function makeRows(heightCm: number, panel: PanelModel): FenceRow[] {
-  const rows: FenceRow[] = [];
-  let remaining = heightCm;
-  while (remaining > 0) {
-    const h = remaining >= 50 ? 50 : 30;
-    rows.push({ heightCm: h, panel });
-    remaining -= h;
-  }
-  return rows;
+  const count = Math.round(heightCm / panel.heightCm);
+  return Array.from({ length: count }, () => ({ heightCm: panel.heightCm, panel }));
 }
 
 function getDefaultSinglePanel(heightCm: number): PanelModel {
@@ -69,20 +58,30 @@ function getDefaultSinglePanel(heightCm: number): PanelModel {
 const DEFAULT_HEIGHT = 150;
 
 type DesignerStore = {
+  // Забор
   boundaryPoints: Point[];
   fenceItems: FenceItem[];
+
+  // Высота
   fenceHeightCm: number;
+
+  // Панели
   singleModel: boolean;
   singlePanel: PanelModel;
-
-  // Динамические ряды — только заполненные пользователем
   filledRows: FenceRow[];
-  // Для buildFence — все ряды (включая незаполненные — не используем)
   rows: FenceRow[];
 
+  // Пиллар
   selectedPillarStyle: PillarStyle;
   activePillar: PillarModel;
 
+  // Дома
+  houses: House[];
+
+  // Инструмент
+  activeTool: "fence" | "house";
+
+  // Actions — забор
   addPoint: (p: Point) => void;
   setFenceHeight: (cm: number) => void;
   setSingleModel: (val: boolean) => void;
@@ -92,6 +91,12 @@ type DesignerStore = {
   setSelectedPillarStyle: (style: PillarStyle) => void;
   rebuildFence: () => void;
   clearAll: () => void;
+
+  // Actions — дома
+  setActiveTool: (tool: "fence" | "house") => void;
+  addHouse: (x: number, z: number) => void;
+  updateHouse: (id: string, patch: Partial<House>) => void;
+  removeHouse: (id: string) => void;
 };
 
 export const useDesignerStore = create<DesignerStore>((set, get) => ({
@@ -104,6 +109,10 @@ export const useDesignerStore = create<DesignerStore>((set, get) => ({
   rows: [],
   selectedPillarStyle: "smooth",
   activePillar: getCompatiblePillar("smooth", DEFAULT_HEIGHT),
+  houses: [],
+  activeTool: "fence",
+
+  // ─── Забор ────────────────────────────────────────────────────────────────
 
   addPoint: (p) => set((s) => ({ boundaryPoints: [...s.boundaryPoints, p] })),
 
@@ -140,37 +149,35 @@ export const useDesignerStore = create<DesignerStore>((set, get) => ({
     get().rebuildFence();
   },
 
-  // Пользователь выбрал панель для ряда i
   setFilledRow: (rowIndex, panel) => {
     const { fenceHeightCm, filledRows } = get();
-
-    // Обрезаем если переписывает уже существующий ряд
     const newFilled = filledRows.slice(0, rowIndex);
     newFilled.push({ heightCm: panel.heightCm, panel });
 
     const filledHeight = getFilledHeight(newFilled);
-
-    // Если набрали нужную высоту — rows = filledRows
     const complete = filledHeight === fenceHeightCm;
 
     set({ filledRows: newFilled, rows: newFilled });
 
     if (complete) get().rebuildFence();
-    else set({ fenceItems: [] }); // Пока не набрали — не рисуем
+    else set({ fenceItems: [] });
   },
 
   resetFilledRows: () => {
     set({ filledRows: [], rows: [] });
-    get().rebuildFence();
+    set({ fenceItems: [] });
   },
 
   setSelectedPillarStyle: (style) => {
     const { fenceHeightCm } = get();
-    set({ selectedPillarStyle: style, activePillar: getCompatiblePillar(style, fenceHeightCm) });
+    set({
+      selectedPillarStyle: style,
+      activePillar: getCompatiblePillar(style, fenceHeightCm),
+    });
   },
 
   rebuildFence: () => {
-    const { boundaryPoints, fenceHeightCm, rows, singleModel, singlePanel } = get();
+    const { boundaryPoints, fenceHeightCm, rows, singleModel, singlePanel, houses } = get();
     if (boundaryPoints.length < 2) { set({ fenceItems: [] }); return; }
 
     const activeRows = singleModel
@@ -180,8 +187,40 @@ export const useDesignerStore = create<DesignerStore>((set, get) => ({
     if (activeRows.length === 0) { set({ fenceItems: [] }); return; }
 
     const rowHeightsCm = activeRows.map((r) => r.heightCm);
-    set({ fenceItems: buildFence(boundaryPoints, fenceHeightCm / 100, rowHeightsCm) });
+    set({ fenceItems: buildFence(boundaryPoints, fenceHeightCm / 100, rowHeightsCm, houses) });
   },
 
-  clearAll: () => set({ boundaryPoints: [], fenceItems: [], filledRows: [], rows: [] }),
+  clearAll: () => set({
+    boundaryPoints: [],
+    fenceItems: [],
+    filledRows: [],
+    rows: [],
+    houses: [],
+  }),
+
+  // ─── Дома ─────────────────────────────────────────────────────────────────
+
+  setActiveTool: (tool) => set({ activeTool: tool }),
+
+  addHouse: (x, z) => {
+    const house: House = {
+      id: crypto.randomUUID(),
+      x, z,
+      widthPx: 200,
+      depthPx: 150,
+    };
+    set((s) => ({ houses: [...s.houses, house] }));
+  },
+
+  updateHouse: (id, patch) => {
+    set((s) => ({
+      houses: s.houses.map((h) => h.id === id ? { ...h, ...patch } : h),
+    }));
+    get().rebuildFence();
+  },
+
+  removeHouse: (id) => {
+    set((s) => ({ houses: s.houses.filter((h) => h.id !== id) }));
+    get().rebuildFence();
+  },
 }));

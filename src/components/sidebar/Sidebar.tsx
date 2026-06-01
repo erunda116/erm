@@ -44,7 +44,7 @@ export default function Sidebar() {
       <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>Euromuro Configurator</h2>
 
       {/* ШАГ 1 */}
-      <Section step="1" label="ВЫСОТА ЗАБОРА">
+      <Section step="1" label="FENCE HEIGHT">
         <HeightDropdown value={fenceHeightCm} onChange={setFenceHeight} />
       </Section>
 
@@ -53,20 +53,20 @@ export default function Sidebar() {
       {/* ШАГ 2 */}
       {/* ШАГ 2 */}
 {/* ШАГ 2 */}
-<Section step="2" label="ПАНЕЛИ">
+<Section step="2" label="PANELS">
   {/* Переключатель — только если возможен одиночный режим */}
   {getPanelsForSingleModel(fenceHeightCm).length > 0 ? (
     <div style={{ display: "flex", background: "#222", borderRadius: 8, padding: 3, gap: 3 }}>
       <ToggleBtn active={singleModel} onClick={() => setSingleModel(true)}>
-        Одна модель
+        Single model
       </ToggleBtn>
       <ToggleBtn active={!singleModel} onClick={() => setSingleModel(false)}>
-        По рядам
+        By rows
       </ToggleBtn>
     </div>
   ) : (
     <div style={{ fontSize: 11, color: "#888", background: "#222", borderRadius: 6, padding: "6px 10px" }}>
-      ℹ️ Эту высоту можно набрать только комбинацией рядов
+      ℹ️ This height can only be achieved by combining rows
     </div>
   )}
 
@@ -84,7 +84,7 @@ export default function Sidebar() {
       <Divider />
 
       {/* ШАГ 3 */}
-      <Section step="3" label="СТОЛБ">
+      <Section step="3" label="PILLARS">
         <PillarDropdown
           selectedStyle={selectedPillarStyle}
           activePillar={activePillar}
@@ -102,14 +102,14 @@ export default function Sidebar() {
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 12, fontWeight: 600 }}>{activePillar.heightCm} cm</div>
             <div style={{ fontSize: 11, color: "#888" }}>
-              {activePillar.aboveGroundCm} см над землёй · {activePillar.price} €
+              {activePillar.aboveGroundCm} cm above ground · {activePillar.price} €
             </div>
           </div>
           <div style={{
             fontSize: 10, color: "#4fc3a1",
             background: "#1e3530", padding: "2px 6px", borderRadius: 4,
           }}>
-            авто
+            auto
           </div>
         </div>
       </Section>
@@ -157,7 +157,7 @@ function DynamicRows() {
           }} />
         </div>
         <span style={{ fontSize: 11, color: isComplete ? "#4fc3a1" : "#888", whiteSpace: "nowrap" }}>
-          {filledHeight} / {fenceHeightCm} см
+          {filledHeight} / {fenceHeightCm} cm
         </span>
       </div>
 
@@ -173,8 +173,8 @@ function DynamicRows() {
           <div key={i} style={{ opacity: i > filledRows.length ? 0.4 : 1, transition: "opacity 0.2s" }}>
             <div style={{ fontSize: 11, color: "#666", marginBottom: 3, display: "flex", justifyContent: "space-between" }}>
               <span>Ряд {rowNum} (снизу)</span>
-              {filled && <span style={{ color: "#4fc3a1" }}>{filled.heightCm} см ✓</span>}
-              {!filled && <span style={{ color: "#f39c12" }}>осталось {remainingForThis} см</span>}
+              {filled && <span style={{ color: "#4fc3a1" }}>{filled.heightCm} cm ✓</span>}
+              {!filled && <span style={{ color: "#f39c12" }}>left {remainingForThis} cm</span>}
             </div>
 
             {filled ? (
@@ -190,9 +190,9 @@ function DynamicRows() {
                 <Thumb src={filled.panel.imagePath} alt={filled.panel.label} w={44} h={34} />
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 13, fontWeight: 600 }}>{filled.panel.label}</div>
-                  <div style={{ fontSize: 11, color: "#888" }}>{filled.panel.heightCm} см · {filled.panel.price} €</div>
+                  <div style={{ fontSize: 11, color: "#888" }}>{filled.panel.heightCm} cm · {filled.panel.price} €</div>
                 </div>
-                <span style={{ fontSize: 10, color: "#888" }}>изменить</span>
+                <span style={{ fontSize: 10, color: "#888" }}>change</span>
               </button>
             ) : (
               // Пустой ряд — показываем дропдаун с доступными панелями
@@ -213,7 +213,7 @@ function DynamicRows() {
           onClick={resetFilledRows}
           style={{ fontSize: 11, color: "#888", background: "none", border: "none", cursor: "pointer", textAlign: "left", padding: "2px 0" }}
         >
-          ↩ Начать заново
+          ↩ Start again
         </button>
       )}
     </div>
@@ -239,7 +239,7 @@ function HeightDropdown({ value, onChange }: { value: number; onChange: (cm: num
         <div style={{ flex: 1 }}>
           <span style={{ fontWeight: 600, fontSize: 13 }}>{value} см</span>
           <span style={{ color: "#888", fontSize: 12, marginLeft: 8 }}>
-            ({(value / 100).toFixed(2)} м)
+            ({(value / 100).toFixed(2)} m)
           </span>
         </div>
         <Arrow open={open} />
@@ -254,10 +254,10 @@ function HeightDropdown({ value, onChange }: { value: number; onChange: (cm: num
               style={dropdownItemStyle(value === cm, idx === FENCE_HEIGHTS_CM.length - 1)}
             >
               <span style={{ fontWeight: 600, color: value === cm ? "#4fc3a1" : "#fff" }}>
-                {cm} см
+                {cm} cm
               </span>
               <span style={{ color: "#666", fontSize: 12, marginLeft: 8 }}>
-                ({(cm / 100).toFixed(2)} м)
+                ({(cm / 100).toFixed(2)} m)
               </span>
               {value === cm && <span style={{ marginLeft: "auto", color: "#4fc3a1" }}>✓</span>}
             </button>
@@ -300,7 +300,7 @@ function PanelDropdown({
             <Thumb src={selected.imagePath} alt={selected.label} w={44} h={34} />
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 13, fontWeight: 600 }}>{selected.label}</div>
-              <div style={{ fontSize: 11, color: "#888" }}>{selected.heightCm} см · {selected.price} €</div>
+              <div style={{ fontSize: 11, color: "#888" }}>{selected.heightCm} cm · {selected.price} €</div>
             </div>
           </>
         ) : (
@@ -322,7 +322,7 @@ function PanelDropdown({
                 <div style={{ fontSize: 13, fontWeight: 600, color: selected?.id === panel.id ? "#4fc3a1" : "#fff" }}>
                   {panel.label}
                 </div>
-                <div style={{ fontSize: 11, color: "#888" }}>{panel.heightCm} см · {panel.price} €/шт</div>
+                <div style={{ fontSize: 11, color: "#888" }}>{panel.heightCm} cm · {panel.price} €/m2</div>
               </div>
               {selected?.id === panel.id && <span style={{ color: "#4fc3a1" }}>✓</span>}
             </button>
@@ -384,7 +384,7 @@ function PillarDropdown({ selectedStyle, activePillar, onSelectStyle }: {
                 <div style={{ fontSize: 13, fontWeight: 600, color: selectedStyle === pillar.style ? "#4fc3a1" : "#fff" }}>
                   {pillar.style === "smooth" ? "Smooth" : "Woodlike"}
                 </div>
-                <div style={{ fontSize: 11, color: "#888" }}>{pillar.price} €/шт</div>
+                <div style={{ fontSize: 11, color: "#888" }}>{pillar.price} €/unit</div>
               </div>
               {selectedStyle === pillar.style && <span style={{ color: "#4fc3a1" }}>✓</span>}
             </button>
