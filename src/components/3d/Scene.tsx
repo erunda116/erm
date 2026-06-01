@@ -1,20 +1,22 @@
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, Grid } from "@react-three/drei";
 import { useDesignerStore } from "../../store/useDesignerStore";
-import PillarSmooth28 from "./PillarSmooth28";
-import Urban40Grey from "./urban40grey";
+import PillarModel from "./PillarModel";
+import PanelModel from "./PanelModel";
 
 const SCALE = 50;
 
 export default function Scene() {
   const fenceItems = useDesignerStore((s) => s.fenceItems);
-  const fenceHeightM = useDesignerStore((s) => s.fenceHeightM); // ← берём высоту
+  const fenceHeightCm = useDesignerStore((s) => s.fenceHeightCm);
+  const rows = useDesignerStore((s) => s.rows);
+  const activePillar = useDesignerStore((s) => s.activePillar);
 
   return (
     <Canvas
       camera={{ position: [0, 15, 25], fov: 50 }}
       style={{ width: "100%", height: "100%" }}
-      gl={{ localClippingEnabled: true }} // ← без этого clipping не работает
+      gl={{ localClippingEnabled: true }}
     >
       <ambientLight intensity={1.5} />
       <directionalLight position={[10, 10, 10]} intensity={2} />
@@ -27,18 +29,25 @@ export default function Scene() {
 
         if (item.type === "post") {
           return (
-            <PillarSmooth28
+            <PillarModel
               key={`post-${idx}`}
+              modelPath={activePillar.modelPath}
+              burialM={activePillar.burialCm / 100}
+              fenceHeightM={fenceHeightCm / 100}
               position={[x, y, z]}
               rotation={[0, rotY, 0]}
-              fenceHeightM={fenceHeightM} // ← передаём высоту
             />
           );
         }
 
+        const rowIndex = item.rowIndex ?? 0;
+        const row = rows[rowIndex] ?? rows[0];
+        if (!row) return null;
+
         return (
-          <Urban40Grey
+          <PanelModel
             key={`panel-${idx}`}
+            modelPath={row.panel.modelPath}
             position={[x, y, z]}
             rotation={[0, rotY, 0]}
             widthRatio={item.widthRatio ?? 1}
