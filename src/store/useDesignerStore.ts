@@ -81,6 +81,8 @@ type DesignerStore = {
 
   panelOrientation: 'outward' | 'inward';
   setPanelOrientation: (v: 'outward' | 'inward') => void;
+    groundType: 'grass' | 'calcada' | 'ground' | 'grid';
+  setGroundType: (v: 'grass' | 'calcada' | 'ground' | 'grid') => void;
 
   // Дома
   houses: House[];
@@ -122,6 +124,8 @@ export const useDesignerStore = create<DesignerStore>((set, get) => ({
   concreteColor: 'grey',
 setPanelOrientation: (v) => set({ panelOrientation: v }),
 setConcreteColor: (color) => set({ concreteColor: color }),
+groundType: 'grid',
+  setGroundType: (v) => set({ groundType: v }),
 
   // ─── Забор ────────────────────────────────────────────────────────────────
 

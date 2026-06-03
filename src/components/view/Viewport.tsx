@@ -4,11 +4,19 @@ import Scene from "../3d/Scene";
 import { useDesignerStore } from "../../store/useDesignerStore";
 
 type ViewMode = "2d" | "3d";
+const GROUND_OPTIONS: { id: 'grass' | 'calcada' | 'ground' | 'grid'; label: string; emoji: string }[] = [
+  { id: 'grid',    label: 'Grid',    emoji: '⬜' },
+  { id: 'grass',   label: 'Lawn',    emoji: '🌿' },
+  { id: 'calcada', label: 'Calcada', emoji: '🪨' },
+  { id: 'ground',  label: 'Ground',  emoji: '🟫' },
+];
 
 export default function Viewport() {
   const [mode, setMode]       = useState<ViewMode>("2d");
   const activeTool            = useDesignerStore((s) => s.activeTool);
   const setActiveTool         = useDesignerStore((s) => s.setActiveTool);
+    const groundType    = useDesignerStore((s) => s.groundType);
+  const setGroundType = useDesignerStore((s) => s.setGroundType);
 
   return (
     <div style={{ width: "100%", height: "100%", position: "relative" }}>
@@ -54,7 +62,26 @@ export default function Viewport() {
             ))}
           </>
         )}
+        {mode === "3d" && (
+          <>
+            {GROUND_OPTIONS.map((opt) => (
+              <button
+                key={opt.id}
+                onClick={() => setGroundType(opt.id)}
+                style={{
+                  padding: "6px 14px", borderRadius: 6, border: "none",
+                  background: groundType === opt.id ? "#4fc3a1" : "transparent",
+                  color: groundType === opt.id ? "#000" : "#aaa",
+                  cursor: "pointer", fontWeight: 600, fontSize: 13,
+                }}
+              >
+                {opt.emoji} {opt.label}
+              </button>
+            ))}
+          </>
+        )}
       </div>
+
 
       {/* Контент */}
       {mode === "2d" && (
