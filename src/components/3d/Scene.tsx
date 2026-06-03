@@ -9,6 +9,7 @@ import ProceduralHouse from "./ProceduralHouse";
 const SCALE = 50;
 
 export default function Scene() {
+  const panelOrientation = useDesignerStore((s) => s.panelOrientation);
   const fenceItems   = useDesignerStore((s) => s.fenceItems);
   const fenceHeightCm = useDesignerStore((s) => s.fenceHeightCm);
   const rows         = useDesignerStore((s) => s.rows);
@@ -16,6 +17,7 @@ const singleModel  = useDesignerStore((s) => s.singleModel);
 const singlePanel  = useDesignerStore((s) => s.singlePanel);
   const activePillar = useDesignerStore((s) => s.activePillar);
   const houses       = useDesignerStore((s) => s.houses);
+  const PILLAR_INWARD_OFFSET = 0.12; 
 
   return (
     <Canvas
@@ -48,18 +50,23 @@ const singlePanel  = useDesignerStore((s) => s.singlePanel);
         const rotY = -item.rotation;
 
         if (item.type === "post") {
-          return (
-            <Suspense fallback={null} key={`post-${idx}`}>
-              <PillarModel
-                modelPath={activePillar.modelPath}
-                burialM={activePillar.burialCm / 100}
-                fenceHeightM={fenceHeightCm / 100}
-                position={[x, 0, z]}
-                rotation={[0, rotY, 0]}
-              />
-            </Suspense>
-          );
-        }
+  // При inward сдвигаем пиллар вдоль направления секции
+  const offsetDir = panelOrientation === 'inward' ? PILLAR_INWARD_OFFSET : 0;
+  const offsetX = offsetDir * Math.sin(rotY);  // проекция на X
+  const offsetZ = offsetDir * Math.cos(rotY);  // проекция на Z
+
+  return (
+    <Suspense fallback={null} key={`post-${idx}`}>
+      <PillarModel
+        modelPath={activePillar.modelPath}
+        burialM={activePillar.burialCm / 100}
+        fenceHeightM={fenceHeightCm / 100}
+        position={[x + offsetX, 0, z + offsetZ]}  // ← ИЗМЕНИТЬ
+        rotation={[0, rotY, 0]}
+      />
+    </Suspense>
+  );
+}
 const row = getRow(item.rowIndex ?? 0);
 if (!row) return null;
         function getRow(rowIndex: number) {

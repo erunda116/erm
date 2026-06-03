@@ -14,19 +14,22 @@ export type PriceSummary = {
 export function calcPrice(
   items: FenceItem[],
   rows: FenceRow[],
-  pillar: PillarModel
+  pillar: PillarModel,
+  concreteColor: string  // ← новый параметр
 ): PriceSummary {
+  const isWhite = concreteColor !== 'grey';  // белый или любой RAL = priceWhite
   const panels = items.filter((i) => i.type === "panel");
   const postCount = items.filter((i) => i.type === "post").length;
 
-  // Группируем панели по модели (не по ряду — для читаемости)
   const byModel = new Map<string, { label: string; price: number; count: number }>();
   panels.forEach((item) => {
     const row = rows[item.rowIndex ?? 0] ?? rows[0];
     if (!row) return;
     const key = row.panel.id;
+    // ← берём priceGrey или priceWhite в зависимости от выбора
+    const price = isWhite ? row.panel.priceWhite : row.panel.priceGrey;
     if (!byModel.has(key)) {
-      byModel.set(key, { label: row.panel.label, price: row.panel.price, count: 0 });
+      byModel.set(key, { label: row.panel.label, price, count: 0 });
     }
     byModel.get(key)!.count++;
   });

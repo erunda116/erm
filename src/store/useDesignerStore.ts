@@ -14,7 +14,7 @@ export type FenceRow = {
 };
 
 export const FENCE_HEIGHTS_CM = [
-  30, 50, 60, 80, 90, 110, 120, 130, 140,
+  30, 50, 60, 80, 90, 100, 110, 120, 130, 140,
   150, 160, 180, 190, 200, 210, 220, 230, 240, 250,
 ];
 
@@ -71,9 +71,16 @@ type DesignerStore = {
   filledRows: FenceRow[];
   rows: FenceRow[];
 
+  //color
+  concreteColor: 'grey' | 'white' | string;
+  setConcreteColor: (color: string) => void;
+
   // Пиллар
   selectedPillarStyle: PillarStyle;
   activePillar: PillarModel;
+
+  panelOrientation: 'outward' | 'inward';
+  setPanelOrientation: (v: 'outward' | 'inward') => void;
 
   // Дома
   houses: House[];
@@ -109,8 +116,12 @@ export const useDesignerStore = create<DesignerStore>((set, get) => ({
   rows: [],
   selectedPillarStyle: "smooth",
   activePillar: getCompatiblePillar("smooth", DEFAULT_HEIGHT),
+  panelOrientation: 'outward',
   houses: [],
   activeTool: "fence",
+  concreteColor: 'grey',
+setPanelOrientation: (v) => set({ panelOrientation: v }),
+setConcreteColor: (color) => set({ concreteColor: color }),
 
   // ─── Забор ────────────────────────────────────────────────────────────────
 
@@ -197,7 +208,7 @@ export const useDesignerStore = create<DesignerStore>((set, get) => ({
     rows: [],
     houses: [],
   }),
-
+  setPanelOrientation: (v) => set({ panelOrientation: v }),
   // ─── Дома ─────────────────────────────────────────────────────────────────
 
   setActiveTool: (tool) => set({ activeTool: tool }),

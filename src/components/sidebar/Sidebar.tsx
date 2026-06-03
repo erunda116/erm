@@ -25,8 +25,12 @@ export default function Sidebar() {
   const activePillar = useDesignerStore((s) => s.activePillar);
   const fenceItems = useDesignerStore((s) => s.fenceItems);
   const clearAll = useDesignerStore((s) => s.clearAll);
+  const panelOrientation = useDesignerStore((s) => s.panelOrientation);
+  const setPanelOrientation = useDesignerStore((s) => s.setPanelOrientation);
+  const concreteColor = useDesignerStore((s) => s.concreteColor);
+const setConcreteColor = useDesignerStore((s) => s.setConcreteColor);
 
-  const price = calcPrice(fenceItems, rows, activePillar);
+  const price = calcPrice(fenceItems, rows, activePillar, concreteColor);
 
   return (
     <div style={{
@@ -80,7 +84,33 @@ export default function Sidebar() {
     <DynamicRows />
   )}
 </Section>
-
+{/* ШАГ 2.5 — ОРИЕНТАЦИЯ */}
+      {singlePanel.side === 'one' && (
+        <>
+          <Divider />
+          <Section step="↔" label="TEXTURE SIDE">
+            <div style={{ display: "flex", background: "#222", borderRadius: 8, padding: 3, gap: 3 }}>
+              <ToggleBtn
+                active={panelOrientation === 'outward'}
+                onClick={() => setPanelOrientation('outward')}
+              >
+                ◀ Outward
+              </ToggleBtn>
+              <ToggleBtn
+                active={panelOrientation === 'inward'}
+                onClick={() => setPanelOrientation('inward')}
+              >
+                Inward ▶
+              </ToggleBtn>
+            </div>
+            <div style={{ fontSize: 11, color: "#666", padding: "2px 4px" }}>
+              {panelOrientation === 'outward'
+                ? 'Texture facing outside'
+                : 'Texture facing inside'}
+            </div>
+          </Section>
+        </>
+      )}
       <Divider />
 
       {/* ШАГ 3 */}
@@ -115,7 +145,48 @@ export default function Sidebar() {
       </Section>
 
       <Divider />
+{/* ШАГ 4 — CONCRETE COLOR */}
+<Section step="4" label="CONCRETE COLOR">
+  {/* Серый / Белый */}
+  <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+    <ConcreteBtn
+      hex="#888888"
+      label="Grey"
+      active={concreteColor === 'grey'}
+      onClick={() => setConcreteColor('grey')}
+    />
+    <ConcreteBtn
+      hex="#f0ede8"
+      label="White"
+      active={concreteColor === 'white'}
+      onClick={() => setConcreteColor('white')}
+    />
+  </div>
 
+  {/* RAL палитра */}
+  <div style={{ fontSize: 11, color: "#666", marginTop: 2 }}>Custom RAL color:</div>
+  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+    {RAL_COLORS.map((ral) => (
+      <ConcreteBtn
+        key={ral.hex}
+        hex={ral.hex}
+        label={ral.label}
+        active={concreteColor === ral.hex}
+        onClick={() => setConcreteColor(ral.hex)}
+        small
+      />
+    ))}
+  </div>
+
+  {/* Подпись активного цвета */}
+  <div style={{ fontSize: 11, color: "#666", padding: "2px 4px" }}>
+    {concreteColor === 'grey'
+  ? 'Standard grey · base price'
+  : concreteColor === 'white'
+  ? 'White concrete · white price'
+  : 'RAL color · white concrete price (painting included)'}
+  </div>
+</Section>
       <button
         style={{ ...btnStyle, borderColor: "#c0392b", color: "#c0392b" }}
         onClick={clearAll}
@@ -521,6 +592,49 @@ function dropdownItemStyle(selected: boolean, isLast: boolean): React.CSSPropert
     color: "#fff", cursor: "pointer",
     display: "flex", alignItems: "center", gap: 10, textAlign: "left",
   };
+}
+
+// ─── RAL Colors ────────────────────────────────────────────────────────────────
+
+const RAL_COLORS = [
+  { hex: "#F4A460", label: "RAL 1001" }, // Beige
+  { hex: "#F5C518", label: "RAL 1021" }, // Yellow
+  { hex: "#E8751A", label: "RAL 2004" }, // Orange
+  { hex: "#C0392B", label: "RAL 3020" }, // Red
+  { hex: "#8B1A1A", label: "RAL 3005" }, // Wine red
+  { hex: "#4A90A4", label: "RAL 5024" }, // Pastel blue
+  { hex: "#1B4F8A", label: "RAL 5010" }, // Blue
+  { hex: "#2E7D32", label: "RAL 6002" }, // Green
+  { hex: "#5D4037", label: "RAL 8011" }, // Brown
+  { hex: "#37474F", label: "RAL 7016" }, // Anthracite
+  { hex: "#263238", label: "RAL 9005" }, // Black
+  { hex: "#ECEFF1", label: "RAL 9016" }, // Traffic white
+];
+
+// ─── ConcreteBtn ───────────────────────────────────────────────────────────────
+
+function ConcreteBtn({
+  hex, label, active, onClick, small = false,
+}: {
+  hex: string; label: string; active: boolean; onClick: () => void; small?: boolean;
+}) {
+  const size = small ? 24 : 32;
+  return (
+    <button
+      onClick={onClick}
+      title={label}
+      style={{
+        width: size, height: size,
+        borderRadius: "50%",
+        background: hex,
+        border: active ? "2px solid #4fc3a1" : "2px solid #444",
+        cursor: "pointer",
+        flexShrink: 0,
+        boxShadow: active ? "0 0 0 2px #4fc3a1" : "none",
+        transition: "all 0.15s",
+      }}
+    />
+  );
 }
 
 const btnStyle: React.CSSProperties = {

@@ -1,6 +1,7 @@
 import { useGLTF } from "@react-three/drei";
 import { useMemo } from "react";
 import * as THREE from "three";
+import { useDesignerStore } from "../../store/useDesignerStore";
 
 type Props = {
   modelPath: string;
@@ -18,6 +19,7 @@ export default function PillarModel({
   rotation = [0, 0, 0],
 }: Props) {
   const model = useGLTF(modelPath);
+  const concreteColor = useDesignerStore((s) => s.concreteColor); // ← ДОБАВИТЬ
 
   const clippingPlanes = useMemo(() => [
     new THREE.Plane(new THREE.Vector3(0, 1, 0), 0),
@@ -32,11 +34,26 @@ export default function PillarModel({
         const mat = (mesh.material as THREE.MeshStandardMaterial).clone();
         mat.clippingPlanes = clippingPlanes;
         mat.clipShadows = true;
+
+        // ← ДОБАВИТЬ: та же логика покраски
+        if (concreteColor !== 'grey') {
+          if (concreteColor === 'white') {
+    mat.color = new THREE.Color('#ffffff');
+    mat.emissive = new THREE.Color('#888888');
+    mat.emissiveIntensity = 0.9; // ← то же значение что у панелей
+  } else {
+    const c = new THREE.Color(concreteColor);
+    mat.color = c;
+    mat.emissive = c.clone().multiplyScalar(0.3);
+    mat.emissiveIntensity = 0.4;
+  }
+        }
+
         mesh.material = mat;
       }
     });
     return clone;
-  }, [model, clippingPlanes]);
+  }, [model, clippingPlanes, concreteColor]); // ← добавить concreteColor в deps
 
   return (
     <group
