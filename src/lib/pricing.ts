@@ -9,6 +9,8 @@ export type PriceSummary = {
   panelTotal: number;
   total: number;
   rowBreakdown: { label: string; count: number; price: number; total: number }[];
+  totalLengthM: number;   
+  totalWeightKg: number;
 };
 
 export function calcPrice(
@@ -42,6 +44,20 @@ export function calcPrice(
   const panelTotal = rowBreakdown.reduce((s, r) => s + r.total, 0);
   const postTotal = postCount * pillar.price;
 
+  // Длина: каждая панель = 2 метра ширины
+// Длина = только панели нулевого ряда × 2м (остальные ряды идут в высоту, не в длину)
+const rowCount = rows.length > 0 ? rows.length : 1;
+const totalLengthM = Math.round((panels.length / rowCount) * 2 * 10) / 10;
+
+// Вес: считаем по каждой панели через её row
+let totalWeightKg = 0;
+panels.forEach((item) => {
+  const row = rows[item.rowIndex ?? 0] ?? rows[0];
+  if (!row) return;
+  totalWeightKg += row.panel.weightKgPerPanel ?? 85;
+});
+totalWeightKg = Math.round(totalWeightKg + postCount * (pillar.weightKg ?? 120));
+
   return {
     panelCount: panels.length,
     postCount,
@@ -49,5 +65,7 @@ export function calcPrice(
     panelTotal,
     total: panelTotal + postTotal,
     rowBreakdown,
+    totalLengthM,   // ← ДОБАВИТЬ
+  totalWeightKg,
   };
 }

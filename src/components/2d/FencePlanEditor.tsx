@@ -97,7 +97,18 @@ const panOrigin = useRef({ x: 0, y: 0 });
   }
 
   function handleClick(e: KonvaEventObject<MouseEvent>) {
-  if (e.target !== e.target.getStage() && e.target.name() !== "bg") return;
+  // Для инструмента house — разрешаем клик по любому элементу кроме ручек домов
+  const targetName = e.target.name();
+  const isHandle = targetName === 'handle' || targetName === 'house-body';
+  
+  if (activeTool === "fence") {
+    // Для забора — только клик по фону
+    if (e.target !== e.target.getStage() && targetName !== "bg") return;
+  } else if (activeTool === "house") {
+    // Для домика — игнорируем только клики по ручкам
+    if (isHandle) return;
+  }
+
   const stage = e.target.getStage();
   if (!stage) return;
   const pos = getScenePos(stage);
@@ -397,6 +408,7 @@ function HouseShape({ house, scale, onUpdate, onRemove }: {
     <Group>
       {/* Тело дома */}
       <Rect
+        name="house-body"
         x={x} y={y}
         width={house.widthPx} height={house.depthPx}
         fill="rgba(180,160,120,0.5)"

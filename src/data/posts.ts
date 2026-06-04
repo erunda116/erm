@@ -9,6 +9,7 @@ export type PillarModel = {
   modelPath: string;
   imagePath: string;
   price: number;
+  weightKg: number;
 };
 
 export const PILLAR_MODELS: PillarModel[] = [
@@ -21,6 +22,7 @@ export const PILLAR_MODELS: PillarModel[] = [
     modelPath: "/models/posts/PillarSmooth22.glb",
     imagePath: "/images/posts/smooth22.jpg",
     price: 35,
+    weightKg: 95,
   },
   {
     id: "smooth-285",
@@ -31,6 +33,7 @@ export const PILLAR_MODELS: PillarModel[] = [
     modelPath: "/models/posts/PillarSmooth28.glb",
     imagePath: "/images/posts/smooth28.jpg",
     price: 42,
+    weightKg: 110,
   },
   {
     id: "smooth-330",
@@ -41,6 +44,7 @@ export const PILLAR_MODELS: PillarModel[] = [
     modelPath: "/models/posts/PillarSmooth33.glb",
     imagePath: "/images/posts/smooth33.jpg",
     price: 48,
+    weightKg: 95,
   },
   {
     id: "woodlike-220",
@@ -51,6 +55,7 @@ export const PILLAR_MODELS: PillarModel[] = [
     modelPath: "/models/posts/PillarWoodlike22.glb",
     imagePath: "/images/posts/woodlike22.jpg",
     price: 40,
+    weightKg: 95,
   },
   {
     id: "woodlike-285",
@@ -61,6 +66,7 @@ export const PILLAR_MODELS: PillarModel[] = [
     modelPath: "/models/posts/PillarWoodlike28.glb",
     imagePath: "/images/posts/woodlike28.jpg",
     price: 47,
+    weightKg: 95,
   },
   {
     id: "woodlike-330",
@@ -71,6 +77,7 @@ export const PILLAR_MODELS: PillarModel[] = [
     modelPath: "/models/posts/PillarWoodlike33.glb",
     imagePath: "/images/posts/woodlike33.jpg",
     price: 55,
+    weightKg: 95,
   },
 ];
 

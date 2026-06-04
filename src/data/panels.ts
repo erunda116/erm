@@ -7,6 +7,7 @@ export type PanelModel = {
   priceGrey: number;   
   priceWhite: number;
   side: 'one' | 'double';
+  weightKgPerPanel: number;
 };
 
 export const PANEL_MODELS: PanelModel[] = [
@@ -19,6 +20,7 @@ export const PANEL_MODELS: PanelModel[] = [
     priceGrey: 30,   // ← было price: 30
     priceWhite: 38,  //
     side: 'one',
+    weightKgPerPanel: 85,
   },
   {
     id: "rusticstone300",
@@ -29,6 +31,7 @@ export const PANEL_MODELS: PanelModel[] = [
     priceGrey: 30,   // ← было price: 30
     priceWhite: 38,  //
     side: 'one',
+    weightKgPerPanel: 60,
   },
   {
     id: "classicbrick300",
@@ -39,6 +42,7 @@ export const PANEL_MODELS: PanelModel[] = [
     priceGrey: 30,   // ← было price: 30
     priceWhite: 38,  //
     side: 'one',
+    weightKgPerPanel: 85,
   },
   {
     id: "classicwood",
@@ -49,6 +53,7 @@ export const PANEL_MODELS: PanelModel[] = [
     priceGrey: 30,   // ← было price: 30
     priceWhite: 38,  //
     side: 'one',
+    weightKgPerPanel: 85,
   },
   {
     id: "heritagestone300",
@@ -59,6 +64,7 @@ export const PANEL_MODELS: PanelModel[] = [
     priceGrey: 30,   // ← было price: 30
     priceWhite: 38,  //
     side: 'one',
+    weightKgPerPanel: 85,
   },
   {
     id: "heritagestone500",
@@ -69,6 +75,7 @@ export const PANEL_MODELS: PanelModel[] = [
     priceGrey: 30,   // ← было price: 30
     priceWhite: 38,  //
     side: 'one',
+    weightKgPerPanel: 85,
   },
   {
     id: "minimalist",
@@ -79,6 +86,7 @@ export const PANEL_MODELS: PanelModel[] = [
     priceGrey: 30,   // ← было price: 30
     priceWhite: 38,  //
     side: 'one',
+    weightKgPerPanel: 85,
   },
   {
     id: "oldwood",
@@ -89,6 +97,7 @@ export const PANEL_MODELS: PanelModel[] = [
     priceGrey: 30,   // ← было price: 30
     priceWhite: 38,  //
     side: 'one',
+    weightKgPerPanel: 85,
   },
   {
     id: "riverstone",
@@ -99,6 +108,7 @@ export const PANEL_MODELS: PanelModel[] = [
     priceGrey: 30,   // ← было price: 30
     priceWhite: 38,  //
     side: 'one',
+    weightKgPerPanel: 85,
   },
 ];
 

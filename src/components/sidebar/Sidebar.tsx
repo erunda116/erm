@@ -31,6 +31,7 @@ export default function Sidebar() {
 const setConcreteColor = useDesignerStore((s) => s.setConcreteColor);
 
   const price = calcPrice(fenceItems, rows, activePillar, concreteColor);
+  const { totalLengthM, totalWeightKg } = price;
 
   return (
     <div style={{
@@ -196,7 +197,14 @@ const setConcreteColor = useDesignerStore((s) => s.setConcreteColor);
 
       <div style={{ flex: 1 }} />
 
-      {fenceItems.length > 0 && <PriceBlock price={price} pillar={activePillar} />}
+      {fenceItems.length > 0 && (
+  <PriceBlock
+    price={price}
+    pillar={activePillar}
+    totalLengthM={totalLengthM}
+    totalWeightKg={totalWeightKg}
+  />
+)}
     </div>
   );
 }
@@ -468,11 +476,19 @@ function PillarDropdown({ selectedStyle, activePillar, onSelectStyle }: {
 
 // ─── PriceBlock ────────────────────────────────────────────────────────────────
 
-function PriceBlock({ price, pillar }: { price: ReturnType<typeof calcPrice>; pillar: PillarModel }) {
+function PriceBlock({ price, pillar, totalLengthM, totalWeightKg }: {
+  price: ReturnType<typeof calcPrice>;
+  pillar: PillarModel;
+  totalLengthM: number;
+  totalWeightKg: number;
+}) {
+  const weightLabel = `${totalWeightKg} кг`;
+
   return (
     <div style={{ background: "#111", borderRadius: 8, padding: "14px 12px", display: "flex", flexDirection: "column", gap: 6 }}>
       <div style={{ fontSize: 12, color: "#aaa", fontWeight: 600, marginBottom: 2 }}>РАСЧЁТ СТОИМОСТИ</div>
 
+      {/* Панели */}
       {price.rowBreakdown.map((row, i) => (
         row.count > 0 && (
           <div key={i}>
@@ -480,19 +496,35 @@ function PriceBlock({ price, pillar }: { price: ReturnType<typeof calcPrice>; pi
               <span style={{ color: "#ccc" }}>{row.label} × {row.count}</span>
               <span style={{ color: "#fff" }}>{row.total} €</span>
             </div>
-            <div style={{ fontSize: 11, color: "#555" }}>{row.count} × {row.price} €</div>
+            <div style={{ fontSize: 11, color: "#555" }}>{row.count} × {row.price} €/м²</div>
           </div>
         )
       ))}
 
+      {/* Столбы */}
       <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
         <span style={{ color: "#ccc" }}>Столбы × {price.postCount}</span>
         <span style={{ color: "#fff" }}>{price.postTotal} €</span>
       </div>
-      <div style={{ fontSize: 11, color: "#555" }}>{price.postCount} × {pillar.price} €</div>
+      <div style={{ fontSize: 11, color: "#555" }}>{price.postCount} × {pillar.price} €/шт</div>
 
       <div style={{ height: 1, background: "#333", margin: "4px 0" }} />
 
+      {/* Длина и вес */}
+      <div style={{ display: "flex", gap: 8 }}>
+        <div style={{ flex: 1, background: "#1a1a1a", borderRadius: 6, padding: "8px 10px" }}>
+          <div style={{ fontSize: 10, color: "#666", marginBottom: 2 }}>ДЛИНА</div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: "#4fc3a1" }}>{totalLengthM} м</div>
+        </div>
+        <div style={{ flex: 1, background: "#1a1a1a", borderRadius: 6, padding: "8px 10px" }}>
+          <div style={{ fontSize: 10, color: "#666", marginBottom: 2 }}>ВЕС</div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: "#f39c12" }}>{weightLabel}</div>
+        </div>
+      </div>
+
+      <div style={{ height: 1, background: "#333", margin: "4px 0" }} />
+
+      {/* Итого */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <span style={{ fontSize: 14, fontWeight: 700 }}>ИТОГО</span>
         <span style={{ fontSize: 18, fontWeight: 700, color: "#4fc3a1" }}>{price.total} €</span>

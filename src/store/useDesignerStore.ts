@@ -192,18 +192,22 @@ groundType: 'grid',
   },
 
   rebuildFence: () => {
-    const { boundaryPoints, fenceHeightCm, rows, singleModel, singlePanel, houses } = get();
-    if (boundaryPoints.length < 2) { set({ fenceItems: [] }); return; }
+  const { boundaryPoints, fenceHeightCm, rows, singleModel, singlePanel, houses } = get();
+  if (boundaryPoints.length < 2) { set({ fenceItems: [] }); return; }
 
-    const activeRows = singleModel
-      ? makeRows(fenceHeightCm, singlePanel)
-      : rows;
+  // ← singleModel всегда строит из singlePanel, не требует заполненных rows
+  const activeRows = singleModel
+    ? makeRows(fenceHeightCm, singlePanel)
+    : rows;
 
-    if (activeRows.length === 0) { set({ fenceItems: [] }); return; }
+  if (!singleModel && activeRows.length === 0) { set({ fenceItems: [] }); return; }
 
-    const rowHeightsCm = activeRows.map((r) => r.heightCm);
-    set({ fenceItems: buildFence(boundaryPoints, fenceHeightCm / 100, rowHeightsCm, houses) });
-  },
+  const rowHeightsCm = activeRows.map((r) => r.heightCm);
+  set({
+    fenceItems: buildFence(boundaryPoints, fenceHeightCm / 100, rowHeightsCm, houses),
+    rows: activeRows, // ← сохраняем актуальные rows в стор
+  });
+},
 
   clearAll: () => set({
     boundaryPoints: [],
