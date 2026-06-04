@@ -71,6 +71,11 @@ type DesignerStore = {
   singlePanel: PanelModel;
   filledRows: FenceRow[];
   rows: FenceRow[];
+
+  deliveryCity: CityResult | null;
+deliveryDistanceKm: number;
+deliveryCost: number;
+setDeliveryCity: (city: CityResult | null, distanceKm: number, cost: number) => void;
   
 
   //color
@@ -128,14 +133,14 @@ setPanelOrientation: (v) => set({ panelOrientation: v }),
 setConcreteColor: (color) => set({ concreteColor: color }),
 groundType: 'grid',
   setGroundType: (v) => set({ groundType: v }),
+  deliveryCity: null,
+deliveryDistanceKm: 0,
+deliveryCost: 0,
 
   // ─── Забор ────────────────────────────────────────────────────────────────
 
   addPoint: (p) => set((s) => ({ boundaryPoints: [...s.boundaryPoints, p] })),
   // Delivery
-deliveryCity: null as CityResult | null,
-deliveryDistanceKm: 0,
-deliveryCost: 0,
 
 setDeliveryCity: (city: CityResult | null, distanceKm: number, cost: number) =>
   set({ deliveryCity: city, deliveryDistanceKm: distanceKm, deliveryCost: cost }),
@@ -225,7 +230,7 @@ setDeliveryCity: (city: CityResult | null, distanceKm: number, cost: number) =>
     rows: [],
     houses: [],
   }),
-  setPanelOrientation: (v) => set({ panelOrientation: v }),
+
   // ─── Дома ─────────────────────────────────────────────────────────────────
 
   setActiveTool: (tool) => set({ activeTool: tool }),

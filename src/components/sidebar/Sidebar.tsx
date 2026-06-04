@@ -310,7 +310,7 @@ function DynamicRows() {
                 <Thumb src={filled.panel.imagePath} alt={filled.panel.label} w={44} h={34} />
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 13, fontWeight: 600 }}>{filled.panel.label}</div>
-                  <div style={{ fontSize: 11, color: "#888" }}>{filled.panel.heightCm} cm · {filled.panel.price} €</div>
+                  <div style={{ fontSize: 11, color: "#888" }}>{filled.panel.heightCm} cm · {filled.panel.priceGrey} €</div>
                 </div>
                 <span style={{ fontSize: 10, color: "#888" }}>change</span>
               </button>
@@ -420,7 +420,7 @@ function PanelDropdown({
             <Thumb src={selected.imagePath} alt={selected.label} w={44} h={34} />
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 13, fontWeight: 600 }}>{selected.label}</div>
-              <div style={{ fontSize: 11, color: "#888" }}>{selected.heightCm} cm · {selected.price} €</div>
+              <div style={{ fontSize: 11, color: "#888" }}>{selected.heightCm} cm · {selected.priceGrey} €</div>
             </div>
           </>
         ) : (
@@ -442,7 +442,7 @@ function PanelDropdown({
                 <div style={{ fontSize: 13, fontWeight: 600, color: selected?.id === panel.id ? "#4fc3a1" : "#fff" }}>
                   {panel.label}
                 </div>
-                <div style={{ fontSize: 11, color: "#888" }}>{panel.heightCm} cm · {panel.price} €/m2</div>
+                <div style={{ fontSize: 11, color: "#888" }}>{panel.heightCm} cm · {panel.priceGrey} €/m2</div>
               </div>
               {selected?.id === panel.id && <span style={{ color: "#4fc3a1" }}>✓</span>}
             </button>
