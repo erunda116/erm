@@ -5,6 +5,7 @@ import { PANEL_MODELS, getPanelsForSingleModel } from "../data/panels";
 import type { PanelModel } from "../data/panels";
 import { getCompatiblePillar, PILLAR_MODELS } from "../data/posts";
 import type { PillarModel, PillarStyle } from "../data/posts";
+import type { CityResult } from '../lib/delivery';
 
 export type { Point, FenceItem, House };
 
@@ -70,6 +71,7 @@ type DesignerStore = {
   singlePanel: PanelModel;
   filledRows: FenceRow[];
   rows: FenceRow[];
+  
 
   //color
   concreteColor: 'grey' | 'white' | string;
@@ -130,6 +132,13 @@ groundType: 'grid',
   // ─── Забор ────────────────────────────────────────────────────────────────
 
   addPoint: (p) => set((s) => ({ boundaryPoints: [...s.boundaryPoints, p] })),
+  // Delivery
+deliveryCity: null as CityResult | null,
+deliveryDistanceKm: 0,
+deliveryCost: 0,
+
+setDeliveryCity: (city: CityResult | null, distanceKm: number, cost: number) =>
+  set({ deliveryCity: city, deliveryDistanceKm: distanceKm, deliveryCost: cost }),
 
   setFenceHeight: (cm) => {
     const { selectedPillarStyle } = get();

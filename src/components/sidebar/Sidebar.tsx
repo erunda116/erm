@@ -11,6 +11,9 @@ import { PILLAR_MODELS } from "../../data/posts";
 import type { PanelModel } from "../../data/panels";
 import type { PillarModel, PillarStyle } from "../../data/posts";
 import { PANEL_MODELS } from "../../data/panels";
+import { generateQuotationPdf } from '../../lib/generateQuotationPdf';
+import { searchCities, roadDistanceKm, calcDelivery, RATE_PER_KM_PER_TON } from '../../lib/delivery';
+import type { CityResult } from '../../lib/delivery';
 
 export default function Sidebar() {
   const fenceHeightCm = useDesignerStore((s) => s.fenceHeightCm);
@@ -29,20 +32,23 @@ export default function Sidebar() {
   const setPanelOrientation = useDesignerStore((s) => s.setPanelOrientation);
   const concreteColor = useDesignerStore((s) => s.concreteColor);
 const setConcreteColor = useDesignerStore((s) => s.setConcreteColor);
+const { deliveryCity, deliveryCost, deliveryDistanceKm, setDeliveryCity } = useDesignerStore();
 
   const price = calcPrice(fenceItems, rows, activePillar, concreteColor);
   const { totalLengthM, totalWeightKg } = price;
 
   return (
     <div style={{
-      width: 270,
+        width: 360,
+minWidth: 360,
+maxWidth: 360,
+    height: '100%',
       background: "#1a1a1a",
       color: "#fff",
       padding: "20px 16px",
       display: "flex",
       flexDirection: "column",
       gap: 14,
-      height: "100vh",
       boxSizing: "border-box",
       overflowY: "auto",
     }}>
@@ -188,6 +194,41 @@ const setConcreteColor = useDesignerStore((s) => s.setConcreteColor);
   : 'RAL color · white concrete price (painting included)'}
   </div>
 </Section>
+{/* Доставка */}
+{fenceItems.length > 0 && (
+  <DeliveryBlock
+    weightKg={price.totalWeightKg}
+    deliveryCity={deliveryCity}
+    deliveryDistanceKm={deliveryDistanceKm}
+    deliveryCost={deliveryCost}
+    onCityChange={(city, dist, cost) => setDeliveryCity(city, dist, cost)}
+  />
+)}
+{fenceItems.length > 0 && (
+  <button
+    style={{
+      padding: "10px 12px", borderRadius: 6,
+      border: "none", cursor: "pointer",
+      background: "#d3001b", color: "#fff",
+      fontWeight: 700, fontSize: 13,
+      display: "flex", alignItems: "center",
+      justifyContent: "center", gap: 8,
+    }}
+    onClick={() => generateQuotationPdf({
+      price,
+      pillar: activePillar,
+      rows,
+      fenceHeightCm,
+      concreteColor,
+      panelOrientation,
+       deliveryCity,           // ← ДОБАВИТЬ
+  deliveryDistanceKm,     // ← ДОБАВИТЬ
+  deliveryCost,    
+    })}
+  >
+    📄 Download Quotation PDF
+  </button>
+)}
       <button
         style={{ ...btnStyle, borderColor: "#c0392b", color: "#c0392b" }}
         onClick={clearAll}
@@ -534,7 +575,148 @@ function PriceBlock({ price, pillar, totalLengthM, totalWeightKg }: {
 }
 
 // ─── Общие компоненты ──────────────────────────────────────────────────────────
+function DeliveryBlock({
+  weightKg,
+  deliveryCity,
+  deliveryDistanceKm,
+  deliveryCost,
+  onCityChange,
+}: {
+  weightKg: number;
+  deliveryCity: CityResult | null;
+  deliveryDistanceKm: number;
+  deliveryCost: number;
+  onCityChange: (city: CityResult | null, dist: number, cost: number) => void;
+}) {
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState<CityResult[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [open, setOpen] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const handleInput = (val: string) => {
+    setQuery(val);
+    setOpen(true);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (val.length < 2) { setResults([]); return; }
+    debounceRef.current = setTimeout(async () => {
+      setLoading(true);
+      const cities = await searchCities(val);
+      setResults(cities);
+      setLoading(false);
+    }, 400);
+  };
+
+  const handleSelect = (city: CityResult) => {
+    const dist = roadDistanceKm(city.lat, city.lng);
+    const cost = calcDelivery(dist, weightKg);
+    onCityChange(city, dist, cost);
+    // Показать только первую часть имени (город, страна)
+    const short = city.displayName.split(',').slice(0, 2).join(',');
+    setQuery(short);
+    setResults([]);
+    setOpen(false);
+  };
+
+  const handleClear = () => {
+    setQuery('');
+    setResults([]);
+    onCityChange(null, 0, 0);
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div style={{ fontSize: 11, color: '#888', fontWeight: 600, letterSpacing: 1 }}>
+        🚚 DELIVERY
+      </div>
+
+      {/* Input */}
+      <div style={{ position: 'relative' }}>
+        <input
+          type="text"
+          value={query}
+          onChange={(e) => handleInput(e.target.value)}
+          placeholder="Enter destination city..."
+          style={{
+            width: '100%', padding: '9px 32px 9px 12px',
+            background: '#1a1a1a', border: '1px solid #333',
+            borderRadius: 6, color: '#fff', fontSize: 13,
+            outline: 'none', boxSizing: 'border-box',
+          }}
+        />
+        {query && (
+          <button
+            onClick={handleClear}
+            style={{
+              position: 'absolute', right: 8, top: '50%',
+              transform: 'translateY(-50%)', background: 'none',
+              border: 'none', color: '#666', cursor: 'pointer', fontSize: 16,
+            }}
+          >×</button>
+        )}
+
+        {/* Dropdown */}
+        {open && (results.length > 0 || loading) && (
+          <div style={{
+            position: 'absolute', top: '100%', left: 0, right: 0,
+            background: '#222', border: '1px solid #444',
+            borderRadius: 6, zIndex: 100, maxHeight: 220, overflowY: 'auto',
+            marginTop: 2, boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+          }}>
+            {loading && (
+              <div style={{ padding: '10px 12px', color: '#666', fontSize: 12 }}>
+                Searching...
+              </div>
+            )}
+            {results.map((city, i) => {
+              const parts = city.displayName.split(',');
+              const name = parts[0];
+              const region = parts.slice(1, 3).join(',');
+              return (
+                <div
+                  key={i}
+                  onClick={() => handleSelect(city)}
+                  style={{
+                    padding: '9px 12px', cursor: 'pointer',
+                    borderBottom: '1px solid #2a2a2a',
+                    transition: 'background 0.15s',
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = '#2a2a2a')}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                >
+                  <div style={{ color: '#fff', fontSize: 13, fontWeight: 600 }}>{name}</div>
+                  <div style={{ color: '#666', fontSize: 11 }}>{region}</div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Результат */}
+      {deliveryCity && (
+        <div style={{
+          background: '#1a1a1a', borderRadius: 6,
+          padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 6,
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
+            <span style={{ color: '#888' }}>Distance (est.)</span>
+            <span style={{ color: '#fff', fontWeight: 600 }}>{deliveryDistanceKm} km</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
+            <span style={{ color: '#888' }}>Rate</span>
+            <span style={{ color: '#666' }}>{RATE_PER_KM_PER_TON} €/km/t</span>
+          </div>
+          <div style={{ height: 1, background: '#2a2a2a' }} />
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>Delivery cost</span>
+            <span style={{ fontSize: 15, fontWeight: 700, color: '#f39c12' }}>{deliveryCost} €</span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 function Section({ step, label, children }: { step: string; label: string; children: React.ReactNode }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
