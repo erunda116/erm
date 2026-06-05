@@ -77,9 +77,11 @@ function getRow(rowIndex: number) {
 }
 
 const is30 = row.panel.heightCm === 30;
-const panelOffset = is30 
-  ? (panelOrientation === 'inward' ? 0.05 : -0.05)  // разный знак для inward/outward
-  : 0;
+const isDouble = row.panel.side === 'double'; 
+const panelOffset = 
+  is30 ? (panelOrientation === 'inward' ? 0.06 : -0.06) :
+  isDouble ? (panelOrientation === 'inward' ? 0.02 : -0.02) :  // ← ДОБАВИТЬ
+  0;
 const px = x + panelOffset * Math.sin(rotY); // ← sin/cos поменял местами
 const pz = z + panelOffset * Math.cos(rotY); // ← убрал минус
 
