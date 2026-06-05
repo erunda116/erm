@@ -48,6 +48,12 @@ const [size, setSize] = useState<Size>({ w: 800, h: 600 });
   const stageRef = useRef<Konva.Stage>(null);
   const panStart  = useRef<Point | null>(null);
 const panOrigin = useRef({ x: 0, y: 0 });
+const lastTapRef = useRef<number>(0);
+const pinchStartDist = useRef<number | null>(null);
+const pinchStartScale = useRef<number>(1);
+const pinchStartPos = useRef({ x: 0, y: 0 });
+const touchPanStart = useRef<Point | null>(null);
+const touchPanOrigin = useRef({ x: 0, y: 0 });
 
   useEffect(() => {
   const el = containerRef.current;
@@ -170,7 +176,128 @@ function handleMouseUp() {
   function handleMouseLeave() {
     setCursor(null);
   }
+function getTouchPos(stage: Konva.Stage, touch: Touch): Point {
+  const rect = stage.container().getBoundingClientRect();
+  return {
+    x: (touch.clientX - rect.left - stage.x()) / stage.scaleX(),
+    y: (touch.clientY - rect.top  - stage.y()) / stage.scaleY(),
+  };
+}
 
+function handleTouchStart(e: KonvaEventObject<TouchEvent>) {
+  const touches = e.evt.touches;
+
+  if (touches.length === 2) {
+    // Pinch-zoom start
+    e.evt.preventDefault();
+    const dx = touches[0].clientX - touches[1].clientX;
+    const dy = touches[0].clientY - touches[1].clientY;
+    pinchStartDist.current = Math.hypot(dx, dy);
+    pinchStartScale.current = scale;
+    pinchStartPos.current = {
+      x: (touches[0].clientX + touches[1].clientX) / 2,
+      y: (touches[0].clientY + touches[1].clientY) / 2,
+    };
+    touchPanStart.current = null;
+    return;
+  }
+
+  if (touches.length === 1) {
+    // Pan start
+    touchPanStart.current = { x: touches[0].clientX, y: touches[0].clientY };
+    touchPanOrigin.current = { ...stagePos };
+  }
+}
+
+function handleTouchMove(e: KonvaEventObject<TouchEvent>) {
+  const touches = e.evt.touches;
+
+  if (touches.length === 2 && pinchStartDist.current !== null) {
+    e.evt.preventDefault();
+    const dx = touches[0].clientX - touches[1].clientX;
+    const dy = touches[0].clientY - touches[1].clientY;
+    const dist = Math.hypot(dx, dy);
+    const newScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE,
+      pinchStartScale.current * (dist / pinchStartDist.current)
+    ));
+
+    const stage = stageRef.current;
+    if (!stage) return;
+
+    const center = pinchStartPos.current;
+    const oldScale = pinchStartScale.current;
+    const pointTo = {
+      x: (center.x - stage.x()) / oldScale,
+      y: (center.y - stage.y()) / oldScale,
+    };
+
+    setScale(newScale);
+    setStagePos({
+      x: center.x - pointTo.x * newScale,
+      y: center.y - pointTo.y * newScale,
+    });
+    return;
+  }
+
+  if (touches.length === 1 && touchPanStart.current) {
+    const dx = touches[0].clientX - touchPanStart.current.x;
+    const dy = touches[0].clientY - touchPanStart.current.y;
+    // Если сдвиг небольшой — это тап, не пан
+    if (Math.hypot(dx, dy) > 8) {
+      setStagePos({
+        x: touchPanOrigin.current.x + dx,
+        y: touchPanOrigin.current.y + dy,
+      });
+    }
+  }
+}
+
+function handleTouchEnd(e: KonvaEventObject<TouchEvent>) {
+  if (e.evt.touches.length === 0 && e.evt.changedTouches.length === 1) {
+    const touch = e.evt.changedTouches[0];
+
+    // Проверяем что это тап (не пан)
+    if (touchPanStart.current) {
+      const dx = touch.clientX - touchPanStart.current.x;
+      const dy = touch.clientY - touchPanStart.current.y;
+      const isTap = Math.hypot(dx, dy) < 8;
+
+      if (isTap) {
+        const stage = stageRef.current;
+        if (!stage) return;
+
+        const now = Date.now();
+        const isDoubleTap = now - lastTapRef.current < 300;
+        lastTapRef.current = now;
+
+        const pos: Point = {
+          x: (touch.clientX - stage.container().getBoundingClientRect().left - stage.x()) / stage.scaleX(),
+          y: (touch.clientY - stage.container().getBoundingClientRect().top  - stage.y()) / stage.scaleY(),
+        };
+
+        const snapped = {
+          x: snapToGrid(pos.x, STEP, scale),
+          y: snapToGrid(pos.y, STEP, scale),
+        };
+
+        if (isDoubleTap && activeTool === "fence" && points.length >= 2) {
+          // Double tap — закрыть контур
+          addPoint({ x: points[0].x, y: points[0].y });
+          rebuildFence();
+        } else if (activeTool === "fence") {
+          addPoint(snapped);
+          rebuildFence();
+        } else if (activeTool === "house") {
+          addHouse(snapped.x, snapped.y);
+          rebuildFence();
+        }
+      }
+    }
+  }
+
+  pinchStartDist.current = null;
+  touchPanStart.current = null;
+}
   
 
   const lastPoint   = points.length > 0 ? points[points.length - 1] : null;
@@ -188,13 +315,16 @@ function handleMouseUp() {
       
 
       {/* Подсказка */}
-      <div style={{
-        position: "fixed", bottom: 20, left: "50%", transform: "translateX(-50%)",
-        zIndex: 200, background: "rgba(0,0,0,0.55)", color: "#fff",
-        padding: "6px 16px", borderRadius: 20, fontSize: 12, pointerEvents: "none",
-      }}>
-        🖱 Mouse wheel — zoom · Drag background — pan · Left-click — add point/building · Double-click on building — delete
-      </div>
+     <div style={{
+  position: "fixed", bottom: 20, left: "50%", transform: "translateX(-50%)",
+  zIndex: 200, background: "rgba(0,0,0,0.55)", color: "#fff",
+  padding: "6px 16px", borderRadius: 20, fontSize: 12, pointerEvents: "none",
+  whiteSpace: "nowrap",
+}}>
+  {'ontouchstart' in window
+    ? '👆 Tap — add point · Two fingers — zoom/pan · Double tap — close'
+    : '🖱 Mouse wheel — zoom · Middle drag — pan · Click — add point · Dbl-click — close'}
+</div>
 
       {/* Масштаб */}
       <div style={{
@@ -213,7 +343,7 @@ function handleMouseUp() {
         scaleY={scale}
         x={stagePos.x}
         y={stagePos.y}
-        draggable
+         draggable={false} 
         onWheel={handleWheel}
         onClick={handleClick}
         onMouseMove={handleMouseMove}
@@ -221,6 +351,9 @@ function handleMouseUp() {
         onMouseDown={handleMouseDown}
 onMouseUp={handleMouseUp}
 onDblClick={handleDblClick}
+onTouchStart={handleTouchStart}   
+  onTouchMove={handleTouchMove}     
+  onTouchEnd={handleTouchEnd} 
       >
         <Layer>
           {/* Фон */}

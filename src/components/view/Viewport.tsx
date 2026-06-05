@@ -28,7 +28,7 @@ export default function Viewport() {
         position: "absolute", top: 12, left: "50%",
         transform: "translateX(-50%)",
         zIndex: 100, display: "flex", gap: 4, alignItems: "center",
-        background: "#1a1a1a", padding: 4, borderRadius: 8,
+        background: "#1a1a1a", padding: 4, borderRadius: 8, maxWidth: "calc(100vw - 32px)", overflowX: "auto", 
       }}>
         {(["2d", "3d"] as ViewMode[]).map((m) => (
           <button
@@ -71,10 +71,10 @@ export default function Viewport() {
                 key={opt.id}
                 onClick={() => setGroundType(opt.id)}
                 style={{
-                  padding: "6px 14px", borderRadius: 6, border: "none",
+                  padding: "6px 10px", borderRadius: 6, border: "none",
                   background: groundType === opt.id ? "#4fc3a1" : "transparent",
                   color: groundType === opt.id ? "#000" : "#aaa",
-                  cursor: "pointer", fontWeight: 600, fontSize: 13,
+                  cursor: "pointer", fontWeight: 600, fontSize: 12,
                 }}
               >
                 {opt.emoji} {t(opt.label as any)}
