@@ -6,6 +6,7 @@ import type { PanelModel } from "../data/panels";
 import { getCompatiblePillar, PILLAR_MODELS } from "../data/posts";
 import type { PillarModel, PillarStyle } from "../data/posts";
 import type { CityResult } from '../lib/delivery';
+import type { Locale } from '../lib/i18n';
 
 export type { Point, FenceItem, House };
 
@@ -71,6 +72,8 @@ type DesignerStore = {
   singlePanel: PanelModel;
   filledRows: FenceRow[];
   rows: FenceRow[];
+  locale: Locale;        
+  setLocale: (l: Locale) => void;
 
   deliveryCity: CityResult | null;
 deliveryDistanceKm: number;
@@ -136,6 +139,7 @@ groundType: 'grid',
   deliveryCity: null,
 deliveryDistanceKm: 0,
 deliveryCost: 0,
+locale: 'en',
 
   // ─── Забор ────────────────────────────────────────────────────────────────
 
@@ -165,7 +169,7 @@ setDeliveryCity: (city: CityResult | null, distanceKm: number, cost: number) =>
     });
     get().rebuildFence();
   },
-
+setLocale: (locale) => set({ locale }),
   setSingleModel: (val) => {
     set({ singleModel: val, filledRows: [], rows: [] });
     get().rebuildFence();

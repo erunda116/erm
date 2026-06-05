@@ -2,13 +2,14 @@ import { useState } from "react";
 import FencePlanEditor from "../2d/FencePlanEditor";
 import Scene from "../3d/Scene";
 import { useDesignerStore } from "../../store/useDesignerStore";
+import { useT } from "../../lib/i18n"; 
 
 type ViewMode = "2d" | "3d";
 const GROUND_OPTIONS: { id: 'grass' | 'calcada' | 'ground' | 'grid'; label: string; emoji: string }[] = [
-  { id: 'grid',    label: 'Grid',    emoji: '⬜' },
-  { id: 'grass',   label: 'Lawn',    emoji: '🌿' },
-  { id: 'calcada', label: 'Calcada', emoji: '🪨' },
-  { id: 'ground',  label: 'Ground',  emoji: '🟫' },
+  { id: 'grid',    label: 'groundGrid',    emoji: '⬜' },
+  { id: 'grass',   label: 'groundLawn',    emoji: '🌿' },
+  { id: 'calcada', label: 'groundCalcada', emoji: '🪨' },
+  { id: 'ground',  label: 'groundGround',  emoji: '🟫' },
 ];
 
 export default function Viewport() {
@@ -17,6 +18,7 @@ export default function Viewport() {
   const setActiveTool         = useDesignerStore((s) => s.setActiveTool);
     const groundType    = useDesignerStore((s) => s.groundType);
   const setGroundType = useDesignerStore((s) => s.setGroundType);
+  const t = useT(); 
 
   return (
     <div style={{ width: "100%", height: "100%", position: "relative" }}>
@@ -57,7 +59,7 @@ export default function Viewport() {
                   cursor: "pointer", fontWeight: 600, fontSize: 13,
                 }}
               >
-                {tool === "fence" ? "✏️ Fence" : "🏠 Building"}
+                 {tool === "fence" ? t('toolFence') : t('toolBuilding')}
               </button>
             ))}
           </>
@@ -75,7 +77,7 @@ export default function Viewport() {
                   cursor: "pointer", fontWeight: 600, fontSize: 13,
                 }}
               >
-                {opt.emoji} {opt.label}
+                {opt.emoji} {t(opt.label as any)}
               </button>
             ))}
           </>

@@ -13,12 +13,12 @@ export type PanelModel = {
 export const PANEL_MODELS: PanelModel[] = [
   {
     id: "urban40grey",
-    label: "Urban 40 Grey",
+    label: "Urban",
     modelPath: "/models/panels/urban40grey.glb",
     imagePath: "/images/panels/urban40grey.jpg",
     heightCm: 50,
-    priceGrey: 30,   // ← было price: 30
-    priceWhite: 38,  //
+    priceGrey: 25,   // ← было price: 30
+    priceWhite: 33,  //
     side: 'one',
     weightKgPerPanel: 85,
   },
@@ -28,8 +28,8 @@ export const PANEL_MODELS: PanelModel[] = [
     modelPath: "/models/panels/RusticStone300grey.glb",
     imagePath: "/images/panels/rusticstone300.jpg",
     heightCm: 30,
-    priceGrey: 30,   // ← было price: 30
-    priceWhite: 38,  //
+    priceGrey: 21,   // ← было price: 30
+    priceWhite: 29,  //
     side: 'one',
     weightKgPerPanel: 60,
   },
@@ -39,8 +39,8 @@ export const PANEL_MODELS: PanelModel[] = [
     modelPath: "/models/panels/ClassicBrick300.glb",
     imagePath: "/images/panels/classicBrick300.jpg",
     heightCm: 30,
-    priceGrey: 30,   // ← было price: 30
-    priceWhite: 38,  //
+    priceGrey: 21,   // ← было price: 30
+    priceWhite: 29,  //
     side: 'one',
     weightKgPerPanel: 85,
   },
@@ -50,8 +50,8 @@ export const PANEL_MODELS: PanelModel[] = [
     modelPath: "/models/panels/ClassicWood.glb",
     imagePath: "/images/panels/classicwood.jpg",
     heightCm: 50,
-    priceGrey: 30,   // ← было price: 30
-    priceWhite: 38,  //
+    priceGrey: 25,   // ← было price: 30
+    priceWhite: 33,  //
     side: 'one',
     weightKgPerPanel: 85,
   },
@@ -61,8 +61,8 @@ export const PANEL_MODELS: PanelModel[] = [
     modelPath: "/models/panels/HeritageStone300.glb",
     imagePath: "/images/panels/heritage300.jpg",
     heightCm: 30,
-    priceGrey: 30,   // ← было price: 30
-    priceWhite: 38,  //
+    priceGrey: 21,   // ← было price: 30
+    priceWhite: 29,  //
     side: 'one',
     weightKgPerPanel: 85,
   },
@@ -72,8 +72,8 @@ export const PANEL_MODELS: PanelModel[] = [
     modelPath: "/models/panels/HeritageStone500.glb",
     imagePath: "/images/panels/heritage500.jpg",
     heightCm: 50,
-    priceGrey: 30,   // ← было price: 30
-    priceWhite: 38,  //
+    priceGrey: 25,   // ← было price: 30
+    priceWhite: 33,  //
     side: 'one',
     weightKgPerPanel: 85,
   },
@@ -94,8 +94,8 @@ export const PANEL_MODELS: PanelModel[] = [
     modelPath: "/models/panels/OldWood.glb",
     imagePath: "/images/panels/oldwood.png",
     heightCm: 50,
-    priceGrey: 30,   // ← было price: 30
-    priceWhite: 38,  //
+    priceGrey: 25,   // ← было price: 30
+    priceWhite: 33,  //
     side: 'one',
     weightKgPerPanel: 85,
   },
@@ -105,8 +105,8 @@ export const PANEL_MODELS: PanelModel[] = [
     modelPath: "/models/panels/RiverStone.glb",
     imagePath: "/images/panels/riverStone.jpg",
     heightCm: 50,
-    priceGrey: 30,   // ← было price: 30
-    priceWhite: 38,  //
+    priceGrey: 25,   // ← было price: 30
+    priceWhite: 33,  //
     side: 'one',
     weightKgPerPanel: 85,
   },

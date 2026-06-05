@@ -14,8 +14,13 @@ import { PANEL_MODELS } from "../../data/panels";
 import { generateQuotationPdf } from '../../lib/generateQuotationPdf';
 import { searchCities, roadDistanceKm, calcDelivery, RATE_PER_KM_PER_TON } from '../../lib/delivery';
 import type { CityResult } from '../../lib/delivery';
+import { useT } from '../../lib/i18n';
+import type { Locale } from '../../lib/i18n';
 
 export default function Sidebar() {
+  const locale = useDesignerStore((s) => s.locale);   
+  const setLocale = useDesignerStore((s) => s.setLocale); 
+  const t = useT(); 
   const fenceHeightCm = useDesignerStore((s) => s.fenceHeightCm);
   const setFenceHeight = useDesignerStore((s) => s.setFenceHeight);
   const singleModel = useDesignerStore((s) => s.singleModel);
@@ -52,10 +57,27 @@ maxWidth: 360,
       boxSizing: "border-box",
       overflowY: "auto",
     }}>
-      <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>Euromuro Configurator</h2>
+      {/* Переключатель языков */}
+<div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+  {(['en', 'pt', 'es'] as const).map((l) => (
+    <button
+      key={l}
+      onClick={() => setLocale(l)}
+      style={{
+        padding: '2px 8px', borderRadius: 4, border: 'none', cursor: 'pointer',
+        background: locale === l ? '#4fc3a1' : '#333',
+        color: locale === l ? '#000' : '#888',
+        fontSize: 11, fontWeight: locale === l ? 700 : 400,
+      }}
+    >
+      {l.toUpperCase()}
+    </button>
+  ))}
+</div>
+      <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>{t('title')}</h2>
 
       {/* ШАГ 1 */}
-      <Section step="1" label="FENCE HEIGHT">
+      <Section step="1" label={t('step1')}>
         <HeightDropdown value={fenceHeightCm} onChange={setFenceHeight} />
       </Section>
 
@@ -64,15 +86,15 @@ maxWidth: 360,
       {/* ШАГ 2 */}
       {/* ШАГ 2 */}
 {/* ШАГ 2 */}
-<Section step="2" label="PANELS">
+<Section step="2" label={t('step2')}>
   {/* Переключатель — только если возможен одиночный режим */}
   {getPanelsForSingleModel(fenceHeightCm).length > 0 ? (
     <div style={{ display: "flex", background: "#222", borderRadius: 8, padding: 3, gap: 3 }}>
       <ToggleBtn active={singleModel} onClick={() => setSingleModel(true)}>
-        Single model
+       {t('singleModel')}
       </ToggleBtn>
       <ToggleBtn active={!singleModel} onClick={() => setSingleModel(false)}>
-        By rows
+         {t('byRows')}
       </ToggleBtn>
     </div>
   ) : (
@@ -86,6 +108,7 @@ maxWidth: 360,
       selected={singlePanel}
       onSelect={setSinglePanel}
       availablePanels={getPanelsForSingleModel(fenceHeightCm)}
+      isWhite={concreteColor !== 'grey'} 
     />
   ) : (
     <DynamicRows />
@@ -95,25 +118,25 @@ maxWidth: 360,
       {singlePanel.side === 'one' && (
         <>
           <Divider />
-          <Section step="↔" label="TEXTURE SIDE">
+          <Section step="2.5" label={t('textureStep')}>
             <div style={{ display: "flex", background: "#222", borderRadius: 8, padding: 3, gap: 3 }}>
               <ToggleBtn
                 active={panelOrientation === 'outward'}
                 onClick={() => setPanelOrientation('outward')}
               >
-                ◀ Outward
+                {t('inward')}
               </ToggleBtn>
               <ToggleBtn
                 active={panelOrientation === 'inward'}
                 onClick={() => setPanelOrientation('inward')}
               >
-                Inward ▶
+                {t('outward')}
               </ToggleBtn>
             </div>
             <div style={{ fontSize: 11, color: "#666", padding: "2px 4px" }}>
               {panelOrientation === 'outward'
-                ? 'Texture facing outside'
-                : 'Texture facing inside'}
+  ? t('textureFacingInside')
+  : t('textureFacingOutside')}
             </div>
           </Section>
         </>
@@ -121,11 +144,12 @@ maxWidth: 360,
       <Divider />
 
       {/* ШАГ 3 */}
-      <Section step="3" label="PILLARS">
+      <Section step="3" label={t('step3')}>
         <PillarDropdown
           selectedStyle={selectedPillarStyle}
           activePillar={activePillar}
           onSelectStyle={setSelectedPillarStyle}
+          isWhite={concreteColor !== 'grey'}
         />
         <div style={{
           background: "#222",
@@ -139,8 +163,8 @@ maxWidth: 360,
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 12, fontWeight: 600 }}>{activePillar.heightCm} cm</div>
             <div style={{ fontSize: 11, color: "#888" }}>
-              {activePillar.aboveGroundCm} cm above ground · {activePillar.price} €
-            </div>
+  {activePillar.aboveGroundCm} cm {t('aboveGround')} · {concreteColor !== 'grey' ? activePillar.priceWhite : activePillar.price} €
+</div>
           </div>
           <div style={{
             fontSize: 10, color: "#4fc3a1",
@@ -153,7 +177,7 @@ maxWidth: 360,
 
       <Divider />
 {/* ШАГ 4 — CONCRETE COLOR */}
-<Section step="4" label="CONCRETE COLOR">
+<Section step="4" label={t('step4')}>
   {/* Серый / Белый */}
   <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
     <ConcreteBtn
@@ -171,7 +195,7 @@ maxWidth: 360,
   </div>
 
   {/* RAL палитра */}
-  <div style={{ fontSize: 11, color: "#666", marginTop: 2 }}>Custom RAL color:</div>
+  <div style={{ fontSize: 11, color: "#666", marginTop: 2 }}>{t('customRal')}</div>
   <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
     {RAL_COLORS.map((ral) => (
       <ConcreteBtn
@@ -187,12 +211,12 @@ maxWidth: 360,
 
   {/* Подпись активного цвета */}
   <div style={{ fontSize: 11, color: "#666", padding: "2px 4px" }}>
-    {concreteColor === 'grey'
-  ? 'Standard grey · base price'
-  : concreteColor === 'white'
-  ? 'White concrete · white price'
-  : 'RAL color · white concrete price (painting included)'}
-  </div>
+  {concreteColor === 'grey'
+    ? t('standardGrey')
+    : concreteColor === 'white'
+    ? t('whiteConcrete')
+    : t('ralConcrete')}
+</div>
 </Section>
 {/* Доставка */}
 {fenceItems.length > 0 && (
@@ -223,17 +247,18 @@ maxWidth: 360,
       panelOrientation,
        deliveryCity,           // ← ДОБАВИТЬ
   deliveryDistanceKm,     // ← ДОБАВИТЬ
-  deliveryCost,    
+  deliveryCost,
+   locale,     
     })}
   >
-    📄 Download Quotation PDF
+    {t('downloadPdf')}
   </button>
 )}
       <button
         style={{ ...btnStyle, borderColor: "#c0392b", color: "#c0392b" }}
         onClick={clearAll}
       >
-        Reset
+        {t('reset')}
       </button>
 
       <div style={{ flex: 1 }} />
@@ -244,6 +269,7 @@ maxWidth: 360,
     pillar={activePillar}
     totalLengthM={totalLengthM}
     totalWeightKg={totalWeightKg}
+    isWhite={concreteColor !== 'grey'}
   />
 )}
     </div>
@@ -255,7 +281,10 @@ function DynamicRows() {
   const filledRows = useDesignerStore((s) => s.filledRows);
   const setFilledRow = useDesignerStore((s) => s.setFilledRow);
   const resetFilledRows = useDesignerStore((s) => s.resetFilledRows);
+  const concreteColor = useDesignerStore((s) => s.concreteColor);
+  const t = useT(); 
 
+ const isWhite = concreteColor !== 'grey';
   const filledHeight = getFilledHeight(filledRows);
   const remaining = fenceHeightCm - filledHeight;
   const isComplete = remaining === 0;
@@ -292,9 +321,9 @@ function DynamicRows() {
         return (
           <div key={i} style={{ opacity: i > filledRows.length ? 0.4 : 1, transition: "opacity 0.2s" }}>
             <div style={{ fontSize: 11, color: "#666", marginBottom: 3, display: "flex", justifyContent: "space-between" }}>
-              <span>Ряд {rowNum} (снизу)</span>
+              <span>{t('nameRow')} {rowNum} ({t('below')})</span>
               {filled && <span style={{ color: "#4fc3a1" }}>{filled.heightCm} cm ✓</span>}
-              {!filled && <span style={{ color: "#f39c12" }}>left {remainingForThis} cm</span>}
+              {!filled && <span style={{ color: "#f39c12" }}>{t('calcLeft')} {remainingForThis} cm</span>}
             </div>
 
             {filled ? (
@@ -320,7 +349,8 @@ function DynamicRows() {
                 selected={available[0]}
                 onSelect={(panel) => setFilledRow(i, panel)}
                 availablePanels={available}
-                placeholder="Выберите панель..."
+                placeholder="Choose the panel..."
+                isWhite={isWhite} 
               />
             )}
           </div>
@@ -333,7 +363,7 @@ function DynamicRows() {
           onClick={resetFilledRows}
           style={{ fontSize: 11, color: "#888", background: "none", border: "none", cursor: "pointer", textAlign: "left", padding: "2px 0" }}
         >
-          ↩ Start again
+          {t('startAgain')}
         </button>
       )}
     </div>
@@ -357,7 +387,7 @@ function HeightDropdown({ value, onChange }: { value: number; onChange: (cm: num
     <div ref={ref} style={{ position: "relative" }}>
       <button onClick={() => setOpen((v) => !v)} style={triggerStyle(open)}>
         <div style={{ flex: 1 }}>
-          <span style={{ fontWeight: 600, fontSize: 13 }}>{value} см</span>
+          <span style={{ fontWeight: 600, fontSize: 13 }}>{value} cm</span>
           <span style={{ color: "#888", fontSize: 12, marginLeft: 8 }}>
             ({(value / 100).toFixed(2)} m)
           </span>
@@ -395,11 +425,13 @@ function PanelDropdown({
   onSelect,
   availablePanels = PANEL_MODELS,
   placeholder,
+  isWhite = false,
 }: {
   selected?: PanelModel;
   onSelect: (p: PanelModel) => void;
   availablePanels?: PanelModel[];
   placeholder?: string;
+   isWhite?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -442,7 +474,9 @@ function PanelDropdown({
                 <div style={{ fontSize: 13, fontWeight: 600, color: selected?.id === panel.id ? "#4fc3a1" : "#fff" }}>
                   {panel.label}
                 </div>
-                <div style={{ fontSize: 11, color: "#888" }}>{panel.heightCm} cm · {panel.priceGrey} €/m2</div>
+                <div style={{ fontSize: 11, color: "#888" }}>
+  {panel.heightCm} cm · {isWhite ? panel.priceWhite : panel.priceGrey} €/m²
+</div>
               </div>
               {selected?.id === panel.id && <span style={{ color: "#4fc3a1" }}>✓</span>}
             </button>
@@ -455,10 +489,11 @@ function PanelDropdown({
 
 // ─── PillarDropdown ────────────────────────────────────────────────────────────
 
-function PillarDropdown({ selectedStyle, activePillar, onSelectStyle }: {
+function PillarDropdown({ selectedStyle, activePillar, onSelectStyle, isWhite = false }: {
   selectedStyle: PillarStyle;
   activePillar: PillarModel;
   onSelectStyle: (s: PillarStyle) => void;
+  isWhite?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -486,7 +521,9 @@ function PillarDropdown({ selectedStyle, activePillar, onSelectStyle }: {
           <div style={{ fontSize: 13, fontWeight: 600 }}>
             {selectedPillar.style === "smooth" ? "Smooth" : "Woodlike"}
           </div>
-          <div style={{ fontSize: 11, color: "#888" }}>{selectedPillar.price} €/шт</div>
+          <div style={{ fontSize: 11, color: "#888" }}>
+  {isWhite ? selectedPillar.priceWhite : selectedPillar.price} €/unit
+</div>
         </div>
         <Arrow open={open} />
       </button>
@@ -504,7 +541,9 @@ function PillarDropdown({ selectedStyle, activePillar, onSelectStyle }: {
                 <div style={{ fontSize: 13, fontWeight: 600, color: selectedStyle === pillar.style ? "#4fc3a1" : "#fff" }}>
                   {pillar.style === "smooth" ? "Smooth" : "Woodlike"}
                 </div>
-                <div style={{ fontSize: 11, color: "#888" }}>{pillar.price} €/unit</div>
+                <div style={{ fontSize: 11, color: "#888" }}>
+  {isWhite ? pillar.priceWhite : pillar.price} €/unit
+</div>
               </div>
               {selectedStyle === pillar.style && <span style={{ color: "#4fc3a1" }}>✓</span>}
             </button>
@@ -517,17 +556,18 @@ function PillarDropdown({ selectedStyle, activePillar, onSelectStyle }: {
 
 // ─── PriceBlock ────────────────────────────────────────────────────────────────
 
-function PriceBlock({ price, pillar, totalLengthM, totalWeightKg }: {
+function PriceBlock({ price, pillar, totalLengthM, totalWeightKg, isWhite}: {
   price: ReturnType<typeof calcPrice>;
   pillar: PillarModel;
   totalLengthM: number;
   totalWeightKg: number;
+  isWhite: boolean;
 }) {
-  const weightLabel = `${totalWeightKg} кг`;
-
+  const weightLabel = `${totalWeightKg} kg`;
+const t = useT(); 
   return (
     <div style={{ background: "#111", borderRadius: 8, padding: "14px 12px", display: "flex", flexDirection: "column", gap: 6 }}>
-      <div style={{ fontSize: 12, color: "#aaa", fontWeight: 600, marginBottom: 2 }}>РАСЧЁТ СТОИМОСТИ</div>
+      <div style={{ fontSize: 12, color: "#aaa", fontWeight: 600, marginBottom: 2 }}>{t('calcTitle')}</div>
 
       {/* Панели */}
       {price.rowBreakdown.map((row, i) => (
@@ -537,28 +577,30 @@ function PriceBlock({ price, pillar, totalLengthM, totalWeightKg }: {
               <span style={{ color: "#ccc" }}>{row.label} × {row.count}</span>
               <span style={{ color: "#fff" }}>{row.total} €</span>
             </div>
-            <div style={{ fontSize: 11, color: "#555" }}>{row.count} × {row.price} €/м²</div>
+            <div style={{ fontSize: 11, color: "#555" }}>{row.count} × {row.price} €/m²</div>
           </div>
         )
       ))}
 
       {/* Столбы */}
       <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
-        <span style={{ color: "#ccc" }}>Столбы × {price.postCount}</span>
+        <span style={{ color: "#ccc" }}>Pillars × {price.postCount}</span>
         <span style={{ color: "#fff" }}>{price.postTotal} €</span>
       </div>
-      <div style={{ fontSize: 11, color: "#555" }}>{price.postCount} × {pillar.price} €/шт</div>
+      <div style={{ fontSize: 11, color: "#555" }}>
+  {price.postCount} × {isWhite ? pillar.priceWhite : pillar.price} €/unit
+</div>
 
       <div style={{ height: 1, background: "#333", margin: "4px 0" }} />
 
       {/* Длина и вес */}
       <div style={{ display: "flex", gap: 8 }}>
         <div style={{ flex: 1, background: "#1a1a1a", borderRadius: 6, padding: "8px 10px" }}>
-          <div style={{ fontSize: 10, color: "#666", marginBottom: 2 }}>ДЛИНА</div>
-          <div style={{ fontSize: 15, fontWeight: 700, color: "#4fc3a1" }}>{totalLengthM} м</div>
+          <div style={{ fontSize: 10, color: "#666", marginBottom: 2 }}>{t('length')}</div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: "#4fc3a1" }}>{totalLengthM} m</div>
         </div>
         <div style={{ flex: 1, background: "#1a1a1a", borderRadius: 6, padding: "8px 10px" }}>
-          <div style={{ fontSize: 10, color: "#666", marginBottom: 2 }}>ВЕС</div>
+          <div style={{ fontSize: 10, color: "#666", marginBottom: 2 }}>{t('weight')}</div>
           <div style={{ fontSize: 15, fontWeight: 700, color: "#f39c12" }}>{weightLabel}</div>
         </div>
       </div>
@@ -567,7 +609,7 @@ function PriceBlock({ price, pillar, totalLengthM, totalWeightKg }: {
 
       {/* Итого */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <span style={{ fontSize: 14, fontWeight: 700 }}>ИТОГО</span>
+        <span style={{ fontSize: 14, fontWeight: 700 }}>{t('total')}</span>
         <span style={{ fontSize: 18, fontWeight: 700, color: "#4fc3a1" }}>{price.total} €</span>
       </div>
     </div>
@@ -593,6 +635,7 @@ function DeliveryBlock({
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const t = useT();
 
   const handleInput = (val: string) => {
     setQuery(val);
@@ -627,7 +670,7 @@ function DeliveryBlock({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       <div style={{ fontSize: 11, color: '#888', fontWeight: 600, letterSpacing: 1 }}>
-        🚚 DELIVERY
+        {t('delivery')}
       </div>
 
       {/* Input */}
@@ -636,7 +679,7 @@ function DeliveryBlock({
           type="text"
           value={query}
           onChange={(e) => handleInput(e.target.value)}
-          placeholder="Enter destination city..."
+         placeholder={t('deliveryPlaceholder')}
           style={{
             width: '100%', padding: '9px 32px 9px 12px',
             background: '#1a1a1a', border: '1px solid #333',
@@ -665,7 +708,7 @@ function DeliveryBlock({
           }}>
             {loading && (
               <div style={{ padding: '10px 12px', color: '#666', fontSize: 12 }}>
-                Searching...
+                {t('searching')}
               </div>
             )}
             {results.map((city, i) => {
@@ -822,7 +865,6 @@ const RAL_COLORS = [
   { hex: "#5D4037", label: "RAL 8011" }, // Brown
   { hex: "#37474F", label: "RAL 7016" }, // Anthracite
   { hex: "#263238", label: "RAL 9005" }, // Black
-  { hex: "#ECEFF1", label: "RAL 9016" }, // Traffic white
 ];
 
 // ─── ConcreteBtn ───────────────────────────────────────────────────────────────

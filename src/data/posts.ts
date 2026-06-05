@@ -9,6 +9,7 @@ export type PillarModel = {
   modelPath: string;
   imagePath: string;
   price: number;
+  priceWhite: number; 
   weightKg: number;
 };
 
@@ -21,7 +22,8 @@ export const PILLAR_MODELS: PillarModel[] = [
     burialCm: 80,
     modelPath: "/models/posts/PillarSmooth22.glb",
     imagePath: "/images/posts/smooth22.jpg",
-    price: 35,
+    price: 33,
+    priceWhite: 39,
     weightKg: 95,
   },
   {
@@ -32,7 +34,8 @@ export const PILLAR_MODELS: PillarModel[] = [
     burialCm: 85,
     modelPath: "/models/posts/PillarSmooth28.glb",
     imagePath: "/images/posts/smooth28.jpg",
-    price: 42,
+    price: 33,
+    priceWhite: 39,
     weightKg: 110,
   },
   {
@@ -43,7 +46,8 @@ export const PILLAR_MODELS: PillarModel[] = [
     burialCm: 80,
     modelPath: "/models/posts/PillarSmooth33.glb",
     imagePath: "/images/posts/smooth33.jpg",
-    price: 48,
+    price: 45,
+    priceWhite: 45,
     weightKg: 95,
   },
   {
@@ -54,7 +58,8 @@ export const PILLAR_MODELS: PillarModel[] = [
     burialCm: 80,
     modelPath: "/models/posts/PillarWoodlike22.glb",
     imagePath: "/images/posts/woodlike22.jpg",
-    price: 40,
+    price: 33,
+    priceWhite: 39,
     weightKg: 95,
   },
   {
@@ -65,7 +70,8 @@ export const PILLAR_MODELS: PillarModel[] = [
     burialCm: 85,
     modelPath: "/models/posts/PillarWoodlike28.glb",
     imagePath: "/images/posts/woodlike28.jpg",
-    price: 47,
+    price: 33,
+    priceWhite: 39,
     weightKg: 95,
   },
   {
@@ -76,7 +82,8 @@ export const PILLAR_MODELS: PillarModel[] = [
     burialCm: 80,
     modelPath: "/models/posts/PillarWoodlike33.glb",
     imagePath: "/images/posts/woodlike33.jpg",
-    price: 55,
+    price: 45,
+    priceWhite: 45,
     weightKg: 95,
   },
 ];

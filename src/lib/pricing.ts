@@ -17,55 +17,69 @@ export function calcPrice(
   items: FenceItem[],
   rows: FenceRow[],
   pillar: PillarModel,
-  concreteColor: string  // ← новый параметр
+  concreteColor: string
 ): PriceSummary {
-  const isWhite = concreteColor !== 'grey';  // белый или любой RAL = priceWhite
+  const isWhite = concreteColor !== 'grey';
   const panels = items.filter((i) => i.type === "panel");
   const postCount = items.filter((i) => i.type === "post").length;
 
-  const byModel = new Map<string, { label: string; price: number; count: number }>();
+  // Площадь одной полной панели в m²: ширина 2м × высота в метрах
+  // widthRatio учитывает неполные панели на концах секций
+  const byModel = new Map<string, { label: string; price: number; count: number; totalM2: number }>();
+
   panels.forEach((item) => {
     const row = rows[item.rowIndex ?? 0] ?? rows[0];
     if (!row) return;
     const key = row.panel.id;
-    // ← берём priceGrey или priceWhite в зависимости от выбора
-    const price = isWhite ? row.panel.priceWhite : row.panel.priceGrey;
+    const pricePerM2 = isWhite ? row.panel.priceWhite : row.panel.priceGrey;
+    const panelHeightM = row.panel.heightCm / 100;
+    const panelWidthM = 2 * (item.widthRatio ?? 1); // 2м × widthRatio
+    const panelM2 = panelHeightM * panelWidthM;
+
     if (!byModel.has(key)) {
-      byModel.set(key, { label: row.panel.label, price, count: 0 });
+      byModel.set(key, { label: row.panel.label, price: pricePerM2, count: 0, totalM2: 0 });
     }
-    byModel.get(key)!.count++;
+    const entry = byModel.get(key)!;
+    entry.count++;
+    entry.totalM2 += panelM2;
   });
 
   const rowBreakdown = Array.from(byModel.values()).map((r) => ({
-    ...r,
-    total: r.count * r.price,
+    label: r.label,
+    count: r.count,
+    price: r.price,
+    total: Math.round(r.totalM2 * r.price * 100) / 100, // цена × реальная площадь m²
   }));
 
   const panelTotal = rowBreakdown.reduce((s, r) => s + r.total, 0);
-  const postTotal = postCount * pillar.price;
 
-  // Длина: каждая панель = 2 метра ширины
-// Длина = только панели нулевого ряда × 2м (остальные ряды идут в высоту, не в длину)
-const rowCount = rows.length > 0 ? rows.length : 1;
-const totalLengthM = Math.round((panels.length / rowCount) * 2 * 10) / 10;
+  // ← ИСПРАВЛЕНИЕ: цена столба зависит от цвета бетона
+  const pillarPrice = isWhite ? pillar.priceWhite : pillar.price;
+  const postTotal = postCount * pillarPrice;
 
-// Вес: считаем по каждой панели через её row
-let totalWeightKg = 0;
-panels.forEach((item) => {
-  const row = rows[item.rowIndex ?? 0] ?? rows[0];
-  if (!row) return;
-  totalWeightKg += row.panel.weightKgPerPanel ?? 85;
-});
-totalWeightKg = Math.round(totalWeightKg + postCount * (pillar.weightKg ?? 120));
+  // Длина по нулевому ряду
+  const panelsRow0 = panels.filter((p) => (p.rowIndex ?? 0) === 0);
+  const totalPanelWidths = panelsRow0.reduce((sum, p) => sum + (p.widthRatio ?? 1), 0);
+  const totalLengthM = Math.round(totalPanelWidths * 2 * 10) / 10;
+
+  // Вес
+  let totalWeightKg = 0;
+  panels.forEach((item) => {
+    const row = rows[item.rowIndex ?? 0] ?? rows[0];
+    if (!row) return;
+    const widthRatio = item.widthRatio ?? 1;
+    totalWeightKg += (row.panel.weightKgPerPanel ?? 85) * widthRatio; // пропорционально для неполных
+  });
+  totalWeightKg = Math.round(totalWeightKg + postCount * (pillar.weightKg ?? 120));
 
   return {
     panelCount: panels.length,
     postCount,
     postTotal,
     panelTotal,
-    total: panelTotal + postTotal,
+    total: Math.round((panelTotal + postTotal) * 100) / 100,
     rowBreakdown,
-    totalLengthM,   // ← ДОБАВИТЬ
-  totalWeightKg,
+    totalLengthM,
+    totalWeightKg,
   };
 }

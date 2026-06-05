@@ -4,6 +4,8 @@ import type { PriceSummary } from './pricing';
 import type { PillarModel } from '../data/posts';
 import type { FenceRow } from '../store/useDesignerStore';
 import type { CityResult } from './delivery';
+import { translations } from './i18n';
+import type { Locale, TranslationKey } from './i18n';
 
 const BRAND_RED = '#d3001b';
 const BRAND_BLACK = '#1a1a1a';
@@ -20,15 +22,17 @@ type QuotationData = {
   deliveryCity?: CityResult | null;       // ← ДОБАВИТЬ
   deliveryDistanceKm?: number;            // ← ДОБАВИТЬ
   deliveryCost?: number;  
+  locale?: Locale;
 };
 
 export async function generateQuotationPdf(data: QuotationData): Promise<void> {
-  const { price, pillar, rows, fenceHeightCm, concreteColor, panelOrientation, deliveryCity, deliveryDistanceKm, deliveryCost } = data;
+  const { price, pillar, rows, fenceHeightCm, concreteColor, panelOrientation, deliveryCity, deliveryDistanceKm, deliveryCost,  locale = 'en' } = data;
 
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
   const margin = 14;
+   const t = (key: TranslationKey): string => translations[locale][key];
 
   // ── LOGO ──────────────────────────────────────────────────────────────────
   try {
@@ -71,7 +75,7 @@ export async function generateQuotationPdf(data: QuotationData): Promise<void> {
   doc.setFontSize(13);
   doc.setTextColor(BRAND_RED);
   const quoteNum = `QUO-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 9000) + 1000)}`;
-  doc.text(`Calculations to quotation  ${quoteNum}`, margin + 6, 43);
+  doc.text(`t('quotationTitle')  ${quoteNum}`, margin + 6, 43);
 
   // Дата справа
   doc.setFont('helvetica', 'normal');
