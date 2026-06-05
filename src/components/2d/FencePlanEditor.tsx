@@ -42,8 +42,8 @@ export default function FencePlanEditor() {
  const containerRef = useRef<HTMLDivElement>(null);
 const [size, setSize] = useState<Size>({ w: 800, h: 600 });
   const [cursor, setCursor]       = useState<Point | null>(null);
-  const [scale, setScale]         = useState(1);
-  const [stagePos, setStagePos]   = useState({ x: 0, y: 0 });
+  const [scale, setScale] = useState(0.3);
+const [stagePos, setStagePos] = useState({ x: 400, y: 300 });
   
   const stageRef = useRef<Konva.Stage>(null);
   const panStart  = useRef<Point | null>(null);
@@ -54,17 +54,28 @@ const pinchStartScale = useRef<number>(1);
 const pinchStartPos = useRef({ x: 0, y: 0 });
 const touchPanStart = useRef<Point | null>(null);
 const touchPanOrigin = useRef({ x: 0, y: 0 });
+const spacePressedRef = useRef(false);
 
   useEffect(() => {
-  const el = containerRef.current;
-  if (!el) return;
-  const ro = new ResizeObserver(([entry]) => {
-    const { width, height } = entry.contentRect;
-    setSize({ w: width, h: height });
-  });
-  ro.observe(el);
-  setSize({ w: el.clientWidth, h: el.clientHeight });
-  return () => ro.disconnect();
+  const onKeyDown = (e: KeyboardEvent) => {
+    if (e.code === 'Space') {
+      e.preventDefault();
+      spacePressedRef.current = true;
+      if (containerRef.current) containerRef.current.style.cursor = 'grab';
+    }
+  };
+  const onKeyUp = (e: KeyboardEvent) => {
+    if (e.code === 'Space') {
+      spacePressedRef.current = false;
+      if (containerRef.current) containerRef.current.style.cursor = 'default';
+    }
+  };
+  window.addEventListener('keydown', onKeyDown);
+  window.addEventListener('keyup', onKeyUp);
+  return () => {
+    window.removeEventListener('keydown', onKeyDown);
+    window.removeEventListener('keyup', onKeyUp);
+  };
 }, []);
 
   function handleWheel(e: KonvaEventObject<WheelEvent>) {
@@ -103,6 +114,7 @@ const touchPanOrigin = useRef({ x: 0, y: 0 });
   }
 
   function handleClick(e: KonvaEventObject<MouseEvent>) {
+    if (spacePressedRef.current) return;
   // Для инструмента house — разрешаем клик по любому элементу кроме ручек домов
   const targetName = e.target.name();
   const isHandle = targetName === 'handle' || targetName === 'house-body';
@@ -163,16 +175,28 @@ function handleDblClick(e: KonvaEventObject<MouseEvent>) {
   });
 }
 function handleMouseDown(e: KonvaEventObject<MouseEvent>) {
+  // Средняя/правая кнопка — всегда пан
   if (e.evt.button === 1 || e.evt.button === 2) {
     e.evt.preventDefault();
     panStart.current  = { x: e.evt.clientX, y: e.evt.clientY };
     panOrigin.current = { ...stagePos };
+    return;
+  }
+  // Левая кнопка + пробел — пан
+  if (e.evt.button === 0 && spacePressedRef.current) {
+    panStart.current  = { x: e.evt.clientX, y: e.evt.clientY };
+    panOrigin.current = { ...stagePos };
+    if (containerRef.current) containerRef.current.style.cursor = 'grabbing';
   }
 }
 
 function handleMouseUp() {
   panStart.current = null;
+  if (containerRef.current && spacePressedRef.current) {
+    containerRef.current.style.cursor = 'grab';
+  }
 }
+
   function handleMouseLeave() {
     setCursor(null);
   }
@@ -321,9 +345,10 @@ function handleTouchEnd(e: KonvaEventObject<TouchEvent>) {
   padding: "6px 16px", borderRadius: 20, fontSize: 12, pointerEvents: "none",
   whiteSpace: "nowrap",
 }}>
-  {'ontouchstart' in window
-    ? '👆 Tap — add point · Two fingers — zoom/pan · Double tap — close'
-    : '🖱 Mouse wheel — zoom · Middle drag — pan · Click — add point · Dbl-click — close'}
+
+{'ontouchstart' in window
+  ? '👆 Tap — add point · Two fingers — zoom/pan · Double tap — close'
+  : '🖱 Wheel — zoom · Space+drag — pan · Click — add point · Dbl-click — close'}
 </div>
 
       {/* Масштаб */}

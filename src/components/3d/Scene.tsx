@@ -53,41 +53,46 @@ const singlePanel  = useDesignerStore((s) => s.singlePanel);
 
         if (item.type === "post") {
   // При inward сдвигаем пиллар вдоль направления секции
-  const offsetDir = panelOrientation === 'inward' ? PILLAR_INWARD_OFFSET : 0;
-  const offsetX = offsetDir * Math.sin(rotY);  // проекция на X
-  const offsetZ = offsetDir * Math.cos(rotY);  // проекция на Z
-
-  return (
+  
+   return (
     <Suspense fallback={null} key={`post-${idx}`}>
       <PillarModel
         modelPath={activePillar.modelPath}
         burialM={activePillar.burialCm / 100}
         fenceHeightM={fenceHeightCm / 100}
-        position={[x + offsetX, 0, z + offsetZ]}  // ← ИЗМЕНИТЬ
+        position={[x, 0, z]}
         rotation={[0, rotY, 0]}
+        panelOrientation={panelOrientation}
       />
     </Suspense>
   );
 }
 const row = getRow(item.rowIndex ?? 0);
 if (!row) return null;
-        function getRow(rowIndex: number) {
+function getRow(rowIndex: number) {
   if (singleModel) {
     return { heightCm: fenceHeightCm, panel: singlePanel };
   }
   return rows[rowIndex] ?? rows[0];
 }
 
-        return (
-          <Suspense fallback={null} key={`panel-${idx}`}>
-            <PanelModel
-              modelPath={row.panel.modelPath}
-              position={[x, item.y, z]}
-              rotation={[0, rotY, 0]}
-              widthRatio={item.widthRatio ?? 1}
-            />
-          </Suspense>
-        );
+const is30 = row.panel.heightCm === 30;
+const panelOffset = is30 
+  ? (panelOrientation === 'inward' ? 0.05 : -0.05)  // разный знак для inward/outward
+  : 0;
+const px = x + panelOffset * Math.sin(rotY); // ← sin/cos поменял местами
+const pz = z + panelOffset * Math.cos(rotY); // ← убрал минус
+
+return (
+  <Suspense fallback={null} key={`panel-${idx}`}>
+    <PanelModel
+      modelPath={row.panel.modelPath}
+      position={[px, item.y, pz]}
+      rotation={[0, rotY, 0]}
+      widthRatio={item.widthRatio ?? 1}
+    />
+  </Suspense>
+);
       })}
       
       <OrbitControls makeDefault />

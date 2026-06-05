@@ -44,16 +44,16 @@ const { deliveryCity, deliveryCost, deliveryDistanceKm, setDeliveryCity } = useD
 
   return (
     <div style={{
-        width: 360,
-minWidth: 360,
-maxWidth: 360,
+        width: 340,
+minWidth: 340,
+maxWidth: 340,
     height: '100%',
       background: "#1a1a1a",
       color: "#fff",
-      padding: "20px 16px",
+      padding: "12px 14px",
       display: "flex",
       flexDirection: "column",
-      gap: 14,
+      gap: 10,
       boxSizing: "border-box",
       overflowY: "auto",
     }}>
@@ -261,16 +261,18 @@ maxWidth: 360,
         {t('reset')}
       </button>
 
-      <div style={{ flex: 1 }} />
+     
 
       {fenceItems.length > 0 && (
-  <PriceBlock
-    price={price}
-    pillar={activePillar}
-    totalLengthM={totalLengthM}
-    totalWeightKg={totalWeightKg}
-    isWhite={concreteColor !== 'grey'}
-  />
+  <div style={{ marginTop: 'auto' }}>   {/* ← прилипает к низу */}
+    <PriceBlock
+      price={price}
+      pillar={activePillar}
+      totalLengthM={totalLengthM}
+      totalWeightKg={totalWeightKg}
+      isWhite={concreteColor !== 'grey'}
+    />
+  </div>
 )}
     </div>
   );
@@ -762,18 +764,18 @@ function DeliveryBlock({
 }
 function Section({ step, label, children }: { step: string; label: string; children: React.ReactNode }) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
         <div style={{
-          width: 20, height: 20, borderRadius: "50%",
+          width: 18, height: 18, borderRadius: "50%",
           background: "#333", color: "#4fc3a1",
-          fontSize: 11, fontWeight: 700,
+          fontSize: 10, fontWeight: 700,
           display: "flex", alignItems: "center", justifyContent: "center",
           flexShrink: 0,
         }}>
           {step}
         </div>
-        <label style={{ fontSize: 12, color: "#aaa", fontWeight: 600 }}>{label}</label>
+        <label style={{ fontSize: 11, color: "#aaa", fontWeight: 600 }}>{label}</label>
       </div>
       {children}
     </div>
@@ -827,7 +829,7 @@ function Arrow({ open }: { open: boolean }) {
 
 function triggerStyle(open: boolean): React.CSSProperties {
   return {
-    width: "100%", padding: "8px 10px", borderRadius: 8,
+    width: "100%", padding: "6px 8px", borderRadius: 8,
     border: `2px solid ${open ? "#4fc3a1" : "#444"}`,
     background: "#222", color: "#fff", cursor: "pointer",
     display: "flex", alignItems: "center", gap: 8, textAlign: "left",

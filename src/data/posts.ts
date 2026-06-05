@@ -11,6 +11,7 @@ export type PillarModel = {
   price: number;
   priceWhite: number; 
   weightKg: number;
+  reference: string;
 };
 
 export const PILLAR_MODELS: PillarModel[] = [
@@ -25,6 +26,7 @@ export const PILLAR_MODELS: PillarModel[] = [
     price: 33,
     priceWhite: 39,
     weightKg: 95,
+    reference: "SMO-220",
   },
   {
     id: "smooth-285",
@@ -37,6 +39,7 @@ export const PILLAR_MODELS: PillarModel[] = [
     price: 33,
     priceWhite: 39,
     weightKg: 110,
+    reference: "SMO-285",
   },
   {
     id: "smooth-330",
@@ -49,6 +52,7 @@ export const PILLAR_MODELS: PillarModel[] = [
     price: 45,
     priceWhite: 45,
     weightKg: 95,
+    reference: "SMO-220",
   },
   {
     id: "woodlike-220",
@@ -61,6 +65,7 @@ export const PILLAR_MODELS: PillarModel[] = [
     price: 33,
     priceWhite: 39,
     weightKg: 95,
+    reference: "SMO-220",
   },
   {
     id: "woodlike-285",
@@ -73,6 +78,7 @@ export const PILLAR_MODELS: PillarModel[] = [
     price: 33,
     priceWhite: 39,
     weightKg: 95,
+    reference: "SMO-220",
   },
   {
     id: "woodlike-330",
@@ -85,6 +91,7 @@ export const PILLAR_MODELS: PillarModel[] = [
     price: 45,
     priceWhite: 45,
     weightKg: 95,
+    reference: "SMO-220",
   },
 ];
 

@@ -9,6 +9,7 @@ type Props = {
   fenceHeightM: number;
   position?: [number, number, number];
   rotation?: [number, number, number];
+  panelOrientation?: 'outward' | 'inward';
 };
 
 export default function PillarModel({
@@ -17,6 +18,7 @@ export default function PillarModel({
   fenceHeightM,
   position = [0, 0, 0],
   rotation = [0, 0, 0],
+  panelOrientation = 'outward',
 }: Props) {
   const model = useGLTF(modelPath);
   const concreteColor = useDesignerStore((s) => s.concreteColor); // ← ДОБАВИТЬ
@@ -55,12 +57,13 @@ export default function PillarModel({
     return clone;
   }, [model, clippingPlanes, concreteColor]); // ← добавить concreteColor в deps
 
+  const scaleZ = panelOrientation === 'inward' ? -1 : 1;
   return (
     <group
       position={[position[0], position[1] - burialM, position[2]]}
       rotation={rotation}
     >
-      <primitive object={clonedScene} />
+      <primitive object={clonedScene} scale={[1, 1, scaleZ]} /> 
     </group>
   );
 }

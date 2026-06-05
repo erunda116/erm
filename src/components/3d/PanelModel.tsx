@@ -31,7 +31,7 @@ export default function PanelModel({
           if (concreteColor === 'white') {
             mat.color = new THREE.Color('#ffffff');
             mat.emissive = new THREE.Color('#888888');
-            mat.emissiveIntensity = 0.9; // подбери 0.4–0.8
+            mat.emissiveIntensity = 0.8; // подбери 0.4–0.8
           } else {
             const c = new THREE.Color(concreteColor);
             mat.color = c;

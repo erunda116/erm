@@ -33,8 +33,7 @@ export function calcPrice(
     const key = row.panel.id;
     const pricePerM2 = isWhite ? row.panel.priceWhite : row.panel.priceGrey;
     const panelHeightM = row.panel.heightCm / 100;
-    const panelWidthM = 2 * (item.widthRatio ?? 1); // 2м × widthRatio
-    const panelM2 = panelHeightM * panelWidthM;
+    const panelM2 = panelHeightM * 2;
 
     if (!byModel.has(key)) {
       byModel.set(key, { label: row.panel.label, price: pricePerM2, count: 0, totalM2: 0 });

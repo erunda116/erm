@@ -8,6 +8,7 @@ export type PanelModel = {
   priceWhite: number;
   side: 'one' | 'double';
   weightKgPerPanel: number;
+  reference: string;
 };
 
 export const PANEL_MODELS: PanelModel[] = [
@@ -21,6 +22,7 @@ export const PANEL_MODELS: PanelModel[] = [
     priceWhite: 33,  //
     side: 'one',
     weightKgPerPanel: 85,
+    reference: "URB-40-GREY",
   },
   {
     id: "rusticstone300",
@@ -32,6 +34,7 @@ export const PANEL_MODELS: PanelModel[] = [
     priceWhite: 29,  //
     side: 'one',
     weightKgPerPanel: 60,
+    reference: "RUS-300-GREY",
   },
   {
     id: "classicbrick300",
@@ -43,6 +46,7 @@ export const PANEL_MODELS: PanelModel[] = [
     priceWhite: 29,  //
     side: 'one',
     weightKgPerPanel: 85,
+    reference: "URB-40-GREY",
   },
   {
     id: "classicwood",
@@ -54,6 +58,7 @@ export const PANEL_MODELS: PanelModel[] = [
     priceWhite: 33,  //
     side: 'one',
     weightKgPerPanel: 85,
+    reference: "URB-40-GREY",
   },
   {
     id: "heritagestone300",
@@ -65,6 +70,7 @@ export const PANEL_MODELS: PanelModel[] = [
     priceWhite: 29,  //
     side: 'one',
     weightKgPerPanel: 85,
+    reference: "URB-40-GREY",
   },
   {
     id: "heritagestone500",
@@ -76,6 +82,7 @@ export const PANEL_MODELS: PanelModel[] = [
     priceWhite: 33,  //
     side: 'one',
     weightKgPerPanel: 85,
+    reference: "URB-40-GREY",
   },
   {
     id: "minimalist",
@@ -87,6 +94,7 @@ export const PANEL_MODELS: PanelModel[] = [
     priceWhite: 38,  //
     side: 'one',
     weightKgPerPanel: 85,
+    reference: "URB-40-GREY",
   },
   {
     id: "oldwood",
@@ -98,6 +106,7 @@ export const PANEL_MODELS: PanelModel[] = [
     priceWhite: 33,  //
     side: 'one',
     weightKgPerPanel: 85,
+    reference: "URB-40-GREY",
   },
   {
     id: "riverstone",
@@ -109,6 +118,7 @@ export const PANEL_MODELS: PanelModel[] = [
     priceWhite: 33,  //
     side: 'one',
     weightKgPerPanel: 85,
+    reference: "URB-40-GREY",
   },
 ];
 
