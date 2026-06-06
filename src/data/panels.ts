@@ -132,6 +132,18 @@ export const PANEL_MODELS: PanelModel[] = [
     weightKgPerPanel: 85,
     reference: "URB-40-GREY",
   },
+  {
+    id: "WoodDouble",
+    label: "Wood Double Sided",
+    modelPath: "/models/panels/woodDouble.glb",
+    imagePath: "/images/panels/classicwood.jpg",
+    heightCm: 50,
+    priceGrey: 25,   // ← было price: 30
+    priceWhite: 33,  //
+    side: 'double',
+    weightKgPerPanel: 85,
+    reference: "URB-40-GREY",
+  },
 ];
 
 // Панели которыми можно набрать высоту одной моделью (высота кратна heightCm)

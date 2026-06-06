@@ -47,7 +47,7 @@ export const PILLAR_MODELS: PillarModel[] = [
     heightCm: 330,
     aboveGroundCm: 250,
     burialCm: 80,
-    modelPath: "/models/posts/PillarSmooth33.glb",
+    modelPath: "/models/posts/ps33.glb",
     imagePath: "/images/posts/smooth33.jpg",
     price: 45,
     priceWhite: 45,
