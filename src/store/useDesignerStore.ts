@@ -21,17 +21,29 @@ export const FENCE_HEIGHTS_CM = [
 ];
 
 // Какие панели влезают в оставшуюся высоту И после которых остаток набираем
-export function getAvailablePanels(remainingCm: number): PanelModel[] {
-  return PANEL_MODELS.filter((p) => {
-    if (p.heightCm > remainingCm) return false;
+export function getAvailablePanels(remainingCm: number, isTopRow: boolean = false): PanelModel[] {
+  // Панели которые физически помещаются
+  const fits = PANEL_MODELS.filter((p) => p.heightCm <= remainingCm);
+
+  // Обычные (не topOnly) панели — показываем если после них остаток достижим
+  const regular = fits.filter((p) => {
+    if (p.topOnly) return false;
     return canReach(remainingCm - p.heightCm);
   });
+
+  // topOnly панели — показываем ТОЛЬКО если они точно закрывают остаток целиком
+  // (т.е. это действительно последний ряд) И isTopRow = true
+  const topPanels = isTopRow
+    ? fits.filter((p) => p.topOnly && p.heightCm === remainingCm)
+    : [];
+
+  return [...regular, ...topPanels];
 }
 
 function canReach(targetCm: number): boolean {
   if (targetCm === 0) return true;
   if (targetCm < 0) return false;
-  const heights = [...new Set(PANEL_MODELS.map((p) => p.heightCm))];
+  const heights = [...new Set(PANEL_MODELS.filter(p => !p.topOnly).map((p) => p.heightCm))];
   const dp = new Array(targetCm + 1).fill(false);
   dp[0] = true;
   for (let i = 1; i <= targetCm; i++) {

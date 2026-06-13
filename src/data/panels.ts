@@ -9,6 +9,7 @@ export type PanelModel = {
   side: 'one' | 'double';
   weightKgPerPanel: number;
   reference: string;
+  topOnly?: boolean;
 };
 
 export const PANEL_MODELS: PanelModel[] = [
@@ -144,9 +145,35 @@ export const PANEL_MODELS: PanelModel[] = [
     weightKgPerPanel: 85,
     reference: "URB-40-GREY",
   },
+  {
+    id: "quinta",
+    label: "Quinta",
+    modelPath: "/models/panels/quinta1.glb",
+    imagePath: "/images/panels/quinta.jpg",
+    heightCm: 50,
+    priceGrey: 25,
+    priceWhite: 33,
+    side: 'one',
+    weightKgPerPanel: 85,
+    reference: "QNT-50",
+    topOnly: true, // ← только верхний ряд
+  },
+ /* {
+    id: "hollyvine",
+    label: "Hollyvine",
+    modelPath: "/models/panels/hollyvine.glb",
+    imagePath: "/images/panels/hollyvine.jpg",
+    heightCm: 50,
+    priceGrey: 28,
+    priceWhite: 36,
+    side: 'double',
+    weightKgPerPanel: 85,
+    reference: "HLV-50",
+    topOnly: true, // ← только верхний ряд
+  },*/
 ];
 
 // Панели которыми можно набрать высоту одной моделью (высота кратна heightCm)
 export function getPanelsForSingleModel(heightCm: number): PanelModel[] {
-  return PANEL_MODELS.filter((p) => heightCm % p.heightCm === 0);
+  return PANEL_MODELS.filter((p) => !p.topOnly && heightCm % p.heightCm === 0);
 }

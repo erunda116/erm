@@ -317,7 +317,9 @@ function DynamicRows() {
         const filled = filledRows[i];
         const prevHeight = getFilledHeight(filledRows.slice(0, i));
         const remainingForThis = fenceHeightCm - prevHeight;
-        const available = getAvailablePanels(remainingForThis);
+        const isTopRow = i === visibleCount - 1 && filledRows.length > 0;
+
+      const available = getAvailablePanels(remainingForThis, isTopRow);
         const rowNum = i + 1;
 
         return (

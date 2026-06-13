@@ -3,6 +3,7 @@ import { useMemo } from "react";
 import * as THREE from "three";
 import { useDesignerStore } from "../../store/useDesignerStore";
 
+
 type Props = {
   modelPath: string;
   burialM: number;
@@ -11,6 +12,7 @@ type Props = {
   rotation?: [number, number, number];
   panelOrientation?: 'outward' | 'inward';
 };
+
 
 export default function PillarModel({
   modelPath,
@@ -23,10 +25,12 @@ export default function PillarModel({
   const model = useGLTF(modelPath);
   const concreteColor = useDesignerStore((s) => s.concreteColor); // ← ДОБАВИТЬ
 
+
   const clippingPlanes = useMemo(() => [
     new THREE.Plane(new THREE.Vector3(0, 1, 0), 0),
     new THREE.Plane(new THREE.Vector3(0, -1, 0), fenceHeightM),
   ], [fenceHeightM]);
+
 
   const clonedScene = useMemo(() => {
     const clone = model.scene.clone(true);
@@ -36,6 +40,7 @@ export default function PillarModel({
         const mat = (mesh.material as THREE.MeshStandardMaterial).clone();
         mat.clippingPlanes = clippingPlanes;
         mat.clipShadows = true;
+
 
         // ← ДОБАВИТЬ: та же логика покраски
         if (concreteColor !== 'grey') {
@@ -51,11 +56,13 @@ export default function PillarModel({
   }
         }
 
+
         mesh.material = mat;
       }
     });
     return clone;
   }, [model, clippingPlanes, concreteColor]); // ← добавить concreteColor в deps
+
 
   const scaleZ = panelOrientation === 'inward' ? -1 : 1;
   return (

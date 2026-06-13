@@ -189,7 +189,7 @@ export function buildFence(
           // Последняя неполная панель
           const remaining = totalLen - cursor;
           if (remaining > 5) {
-            const panelCenterOffset = cursor + remaining / 2;
+            const panelCenterOffset = cursor + PANEL_WIDTH_PX / 2; 
             let rowY = 0;
             rowHeightsCm.forEach((h, rowIndex) => {
               result.push({
