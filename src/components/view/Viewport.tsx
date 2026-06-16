@@ -33,6 +33,7 @@ export default function Viewport() {
         {(["2d", "3d"] as ViewMode[]).map((m) => (
           <button
             key={m}
+            id={m === '2d' ? 'tour-2d-btn' : 'tour-3d-btn'} 
             onClick={() => setMode(m)}
             style={{
               padding: "6px 20px", borderRadius: 6, border: "none",
@@ -51,6 +52,7 @@ export default function Viewport() {
             {(["fence", "house"] as const).map((tool) => (
               <button
                 key={tool}
+                 id={tool === 'fence' ? 'tour-fence-btn' : 'tour-building-btn'} 
                 onClick={() => setActiveTool(tool)}
                 style={{
                   padding: "6px 14px", borderRadius: 6, border: "none",
@@ -69,6 +71,7 @@ export default function Viewport() {
             {GROUND_OPTIONS.map((opt) => (
               <button
                 key={opt.id}
+                id={opt.id === 'grid' ? 'tour-ground' : undefined} 
                 onClick={() => setGroundType(opt.id)}
                 style={{
                   padding: "6px 10px", borderRadius: 6, border: "none",

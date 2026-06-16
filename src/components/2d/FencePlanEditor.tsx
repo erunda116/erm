@@ -340,7 +340,7 @@ function handleTouchEnd(e: KonvaEventObject<TouchEvent>) {
 
       {/* Подсказка */}
      <div style={{
-  position: "fixed", bottom: 20, left: "50%", transform: "translateX(-50%)",
+  position: "fixed", bottom: 20, right: 0, transform: "translateX(-50%)",
   zIndex: 200, background: "rgba(0,0,0,0.55)", color: "#fff",
   padding: "6px 16px", borderRadius: 20, fontSize: 12, pointerEvents: "none",
   whiteSpace: "nowrap",

@@ -48,7 +48,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
           <div style={{
             position: 'absolute', inset: 0,
-            display: mobileTab === 'view' ? 'block' : 'none',
+            display: mobileTab === 'view' ? 'block' : 'none', 
           }}>
             {children}
           </div>
@@ -60,11 +60,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   // Десктоп — как было
   return (
-    <div style={{ display: 'flex', height: '100vh' }}>
-      <Sidebar />
-      <div style={{ flex: 1, position: 'relative' }}>
-        {children}
-      </div>
+  <div style={{ display: 'flex', height: '100vh', width: '100vw', overflow: 'hidden' }}>
+    <Sidebar />
+    <div style={{ flex: 1, position: 'relative', overflow: 'hidden', minWidth: 0 }}>
+      {children}
     </div>
-  );
+  </div>
+);
 }
