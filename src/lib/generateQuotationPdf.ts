@@ -25,6 +25,7 @@ type QuotationData = {
   deliveryDistanceKm?: number;
   deliveryCost?: number;
   locale?: Locale;
+  selectedRal?: string;
 };
 
 export async function generateQuotationPdf(data: QuotationData): Promise<void> {
