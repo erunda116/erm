@@ -230,7 +230,7 @@ const concreteColor = selectedRal ?? baseConcreteColor;
   rows,
   fenceHeightCm,
   baseConcreteColor,
-  selectedRal,
+  selectedRal: selectedRal ?? undefined,
   panelOrientation,
   deliveryCity,
   deliveryDistanceKm,
