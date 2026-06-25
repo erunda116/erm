@@ -229,7 +229,6 @@ const concreteColor = selectedRal ?? baseConcreteColor;
   pillar: activePillar,
   rows,
   fenceHeightCm,
-  concreteColor,
   baseConcreteColor,
   selectedRal,
   panelOrientation,
