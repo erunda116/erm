@@ -43,7 +43,7 @@ export default function FencePlanEditor() {
   const t = useT();
 
  const containerRef = useRef<HTMLDivElement>(null);
-const [size, setSize] = useState<Size>({ w: 800, h: 600 });
+const [size, setSize] = useState<Size>({ w: 1000, h: 800 });
   const [cursor, setCursor]       = useState<Point | null>(null);
   const [scale, setScale] = useState(0.3);
 const [stagePos, setStagePos] = useState({ x: 400, y: 300 });

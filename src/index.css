@@ -203,6 +203,7 @@ body {
   overflow-y: hidden;
   position: relative;
   border: 1px solid #000;
+  max-height: 800px;
 }
 
 @media (max-width: 767px) {
@@ -291,9 +292,11 @@ body {
 }
 .viewport-hint {
   position: fixed;
-  left: 50%;
+  /*left: 50%;*/
+  right: 24px;
+  z-index: 9999;
   bottom: 20px;
-  transform: translateX(-50%);
+  /*transform: translateX(-50%);*/
   z-index: 200;
   background: rgba(0, 0, 0, 0.55);
   color: #fff;
