@@ -5,6 +5,7 @@ import type { House } from "../../store/useDesignerStore";
 import type { KonvaEventObject } from "konva/lib/Node";
 import type Konva from "konva";
 import Grid from "./Grid";
+import { useT } from '../../lib/i18n';
 
 type Size = { w: number; h: number };
 type Point = { x: number; y: number };
@@ -15,6 +16,7 @@ const MIN_SCALE = 0.1;
 const MAX_SCALE = 5;
 const HANDLE_R = 6;
 const CLOSE_SNAP_RADIUS = 30;
+
 
 function snapToGrid(val: number, step: number, scale: number): number {
   return Math.round(val / step) * step;
@@ -38,6 +40,7 @@ export default function FencePlanEditor() {
   const addHouse      = useDesignerStore((s) => s.addHouse);
   const updateHouse   = useDesignerStore((s) => s.updateHouse);
   const removeHouse   = useDesignerStore((s) => s.removeHouse);
+  const t = useT();
 
  const containerRef = useRef<HTMLDivElement>(null);
 const [size, setSize] = useState<Size>({ w: 800, h: 600 });
@@ -339,16 +342,10 @@ function handleTouchEnd(e: KonvaEventObject<TouchEvent>) {
       
 
       {/* Подсказка */}
-     <div style={{
-  position: "fixed", bottom: 20, right: 0, transform: "translateX(-50%)",
-  zIndex: 200, background: "rgba(0,0,0,0.55)", color: "#fff",
-  padding: "6px 16px", borderRadius: 20, fontSize: 12, pointerEvents: "none",
-  whiteSpace: "nowrap",
-}}>
-
-{'ontouchstart' in window
-  ? '👆 Tap — add point · Two fingers — zoom/pan · Double tap — close'
-  : '🖱 Wheel — zoom · Space+drag — pan · Click — add point · Dbl-click — close'}
+     <div className="viewport-hint">
+  {"ontouchstart" in window
+    ? t('tooltip2dMob')
+    : t('tooltip2dDes')}
 </div>
 
       {/* Масштаб */}

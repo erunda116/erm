@@ -350,6 +350,7 @@ console.log(current.targetId);
         cursor: 'pointer',
         flexShrink: 0,
         overflow: 'visible',
+        marginRight: 10,
       }}
     >
       {pulse && <PulseRing />}

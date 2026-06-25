@@ -52,20 +52,7 @@ const setRowsPopupOpen = useDesignerStore((s) => s.setRowsPopupOpen);
 const concreteColor = selectedRal ?? baseConcreteColor;
 
   return (
-    <div style={{
-      width: 560, minWidth: 560, maxWidth: 560,
-      height: '100%',
-      background: "#ffffff",
-      color: "#000000",
-      padding: "8px 12px 8px 12px",
-      display: "flex",
-      flexDirection: "column",
-      gap: 6,
-      boxSizing: "border-box",
-      overflowY: "hidden",
-       position: 'relative',
-       border: '1px solid #000000',
-    }}>
+   <div className="config-sidebar">
 
       {/* Язык + заголовок */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
