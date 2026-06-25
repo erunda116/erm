@@ -403,7 +403,7 @@ function RowsSummary({ onEdit, id }: { onEdit: () => void, id?: string }) {
 // ─── RowsPopup ─────────────────────────────────────────────────────────────────
 
 function RowsPopup({ onClose }: { onClose: () => void }) {
-  const concreteColor = useDesignerStore((s) => s.concreteColor);
+  const baseConcreteColor = useDesignerStore((s) => s.baseConcreteColor);
 
   return (
     <>

@@ -18,7 +18,7 @@ type QuotationData = {
   pillar: PillarModel;
   rows: FenceRow[];
   fenceHeightCm: number;
-  concreteColor: string;
+  baseConcreteColor: 'grey' | 'white'
   panelOrientation: 'outward' | 'inward';
   textureSide?: 'inward' | 'outward' | 'double';
   deliveryCity?: CityResult | null;
@@ -33,7 +33,7 @@ export async function generateQuotationPdf(data: QuotationData): Promise<void> {
     pillar,
     rows,
     fenceHeightCm,
-    concreteColor,
+    baseConcreteColor,
     panelOrientation,
     textureSide,
     deliveryCity,
@@ -67,7 +67,7 @@ export async function generateQuotationPdf(data: QuotationData): Promise<void> {
     return Array.isArray(lines) ? lines.length : 1;
   };
 
-  const isWhite = concreteColor !== 'grey';
+  const isWhite = baseConcreteColor !== 'grey';
 
   const resolvedTextureSide =
     textureSide ??
@@ -176,11 +176,11 @@ export async function generateQuotationPdf(data: QuotationData): Promise<void> {
 
   const heightLabel = `${fenceHeightCm} cm`;
   const colorLabel =
-    concreteColor === 'grey'
+    baseConcreteColor === 'grey'
       ? t('quotationColorGrey')
-      : concreteColor === 'white'
+      : baseConcreteColor === 'white'
       ? t('quotationColorWhite')
-      : `RAL (${concreteColor})`;
+      : `RAL (${baseConcreteColor})`;
 
   const configCols = [
     { label: safe(t('quotationHeight')), value: safe(heightLabel) },

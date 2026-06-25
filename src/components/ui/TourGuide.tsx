@@ -223,7 +223,7 @@ export default function TourGuide() {
   const singleModel         = useDesignerStore((s) => s.singleModel);
   const singlePanel         = useDesignerStore((s) => s.singlePanel);
   const selectedPillarStyle = useDesignerStore((s) => s.selectedPillarStyle);
-  const concreteColor       = useDesignerStore((s) => s.concreteColor);
+  const baseConcreteColor = useDesignerStore((s) => s.baseConcreteColor);
   const panelOrientation    = useDesignerStore((s) => s.panelOrientation);
   const activeTool          = useDesignerStore((s) => s.activeTool);
   const fenceItems = useDesignerStore((s) => s.fenceItems);
@@ -231,7 +231,7 @@ const setRowsPopupOpen = useDesignerStore((s) => s.setRowsPopupOpen);
 
   const storeValues: Record<string, unknown> = {
     locale, fenceHeightCm, singleModel, singlePanel,
-    selectedPillarStyle, concreteColor, panelOrientation, activeTool,
+    selectedPillarStyle, baseConcreteColor, panelOrientation, activeTool,
   };
 
 useEffect(() => {
@@ -326,7 +326,7 @@ stepsRef.current = steps;
       watchInitVal.current = UNINIT;
       setTimeout(() => setStepIdx((i) => Math.min(i + 1, total - 1)), 350);
     }
-  }, [locale, fenceHeightCm, singleModel, singlePanel, selectedPillarStyle, concreteColor, panelOrientation, activeTool]);
+  }, [locale, fenceHeightCm, singleModel, singlePanel, selectedPillarStyle, baseConcreteColor, panelOrientation, activeTool]);
 
   
 
