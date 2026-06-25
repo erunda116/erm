@@ -12,7 +12,7 @@ import type { PanelModel } from "../../data/panels";
 import type { PillarModel, PillarStyle } from "../../data/posts";
 import { PANEL_MODELS } from "../../data/panels";
 import { generateQuotationPdf } from '../../lib/generateQuotationPdf';
-import { searchCities, roadDistanceKm, calcDelivery, RATE_PER_KM_PER_TON } from '../../lib/delivery';
+import { searchCities, roadDistanceKm, calcDelivery } from '../../lib/delivery';
 import type { CityResult } from '../../lib/delivery';
 import { useT } from '../../lib/i18n';
 import TourGuide from '../ui/TourGuide';
@@ -103,7 +103,7 @@ const concreteColor = selectedRal ?? baseConcreteColor;
     </div>
   ) : (
     <div style={{ fontSize: 11, color: "#d3001b", background: "#ffffff", borderRadius: 6, padding: "4px 8px", border: '2px solid #d3001b' }}>
-      ℹ️ This height can only be achieved by combining rows
+      {t('thisFenceNotificatorRed')}
     </div>
   )}
 
@@ -685,7 +685,7 @@ function DeliveryBlock({ weightKg, deliveryCity, deliveryDistanceKm, deliveryCos
         )}
         {open && (results.length > 0 || loading) && (
           <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: '#222', border: '1px solid #444', borderRadius: 6, zIndex: 100, maxHeight: 180, overflowY: 'auto', marginTop: 2, boxShadow: '0 8px 24px rgba(0,0,0,0.5)' }}>
-            {loading && <div style={{ padding: '8px', color: '#fff', fontSize: 11 }}>{t('searching')}</div>}
+            {loading && <div style={{ padding: '8px', color: '#000', fontSize: 11 }}>{t('searching')}</div>}
             {results.map((city, i) => {
               const parts = city.displayName.split(',');
               return (
@@ -705,11 +705,11 @@ function DeliveryBlock({ weightKg, deliveryCity, deliveryDistanceKm, deliveryCos
         <div style={{ background: '#fff', borderRadius: 6, padding: '6px 8px', display: 'flex', flexDirection: 'column', gap: 3, border: '1px solid #000000' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10 }}>
             <span style={{ color: '#000' }}>Distance</span>
-            <span style={{ color: '#fff', fontWeight: 600 }}>{deliveryDistanceKm}km</span>
+            <span style={{ color: '#000', fontWeight: 600 }}>{deliveryDistanceKm}km</span>
           </div>
           <div style={{ height: 1, background: '#2a2a2a' }} />
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: '#fff' }}>Delivery</span>
+            <span style={{ fontSize: 11, fontWeight: 700, color: '#000' }}>Delivery</span>
             <span style={{ fontSize: 13, fontWeight: 700, color: '#f39c12' }}>{deliveryCost}€</span>
           </div>
         </div>

@@ -15,15 +15,15 @@ export type PanelModel = {
 export const PANEL_MODELS: PanelModel[] = [
   {
     id: "urban40grey",
-    label: "Urban",
+    label: "Urban 40mm",
     modelPath: "/models/panels/urban40grey.glb",
     imagePath: "/images/panels/urban40grey.jpg",
     heightCm: 50,
-    priceGrey: 25,   // ← было price: 30
-    priceWhite: 33,  //
+    priceGrey: 29,   // ← было price: 30
+    priceWhite: 37,  //
     side: 'one',
-    weightKgPerPanel: 85,
-    reference: "URB-40-GREY",
+    weightKgPerPanel: 75,
+    reference: "ERM.F.0717",
   },
   {
     id: "rusticstone300",
@@ -34,8 +34,8 @@ export const PANEL_MODELS: PanelModel[] = [
     priceGrey: 21,   // ← было price: 30
     priceWhite: 29,  //
     side: 'one',
-    weightKgPerPanel: 60,
-    reference: "RUS-300-GREY",
+    weightKgPerPanel: 40,
+    reference: "ERM.F.0208",
   },
   {
     id: "classicbrick300",
@@ -46,20 +46,20 @@ export const PANEL_MODELS: PanelModel[] = [
     priceGrey: 21,   // ← было price: 30
     priceWhite: 29,  //
     side: 'one',
-    weightKgPerPanel: 85,
-    reference: "URB-40-GREY",
+    weightKgPerPanel: 40,
+    reference: "ERM.F.0665",
   },
   {
     id: "classicwood",
-    label: "Classic Wood",
+    label: "Classic Wood 40mm",
     modelPath: "/models/panels/ClassicWood.glb",
     imagePath: "/images/panels/classicwood.jpg",
     heightCm: 50,
-    priceGrey: 25,   // ← было price: 30
-    priceWhite: 33,  //
+    priceGrey: 29,   // ← было price: 30
+    priceWhite: 37,  //
     side: 'one',
-    weightKgPerPanel: 85,
-    reference: "URB-40-GREY",
+    weightKgPerPanel: 75,
+    reference: "ERM.F.0526",
   },
   {
     id: "heritagestone300",
@@ -70,8 +70,8 @@ export const PANEL_MODELS: PanelModel[] = [
     priceGrey: 21,   // ← было price: 30
     priceWhite: 29,  //
     side: 'one',
-    weightKgPerPanel: 85,
-    reference: "URB-40-GREY",
+    weightKgPerPanel: 40,
+    reference: "ERM.F.0783",
   },
   {
     id: "heritagestone500",
@@ -82,44 +82,44 @@ export const PANEL_MODELS: PanelModel[] = [
     priceGrey: 25,   // ← было price: 30
     priceWhite: 33,  //
     side: 'one',
-    weightKgPerPanel: 85,
-    reference: "URB-40-GREY",
+    weightKgPerPanel: 75,
+    reference: "ERM.F.0703",
   },
   {
     id: "minimalist",
-    label: "Minimalist",
+    label: "Minimalist 500 30mm",
     modelPath: "/models/panels/Minimalist.glb",
     imagePath: "/images/panels/minimalist.jpg",
     heightCm: 50,
-    priceGrey: 30,   // ← было price: 30
-    priceWhite: 38,  //
+    priceGrey: 25,   // ← было price: 30
+    priceWhite: 33,  //
     side: 'one',
-    weightKgPerPanel: 85,
-    reference: "URB-40-GREY",
+    weightKgPerPanel: 57,
+    reference: "ERM.F.0901",
   },
   {
     id: "oldwood",
-    label: "Old Wood",
+    label: "Old Wood 40mm",
     modelPath: "/models/panels/OldWood.glb",
     imagePath: "/images/panels/oldwood.png",
     heightCm: 50,
-    priceGrey: 25,   // ← было price: 30
-    priceWhite: 33,  //
+    priceGrey: 29,   // ← было price: 30
+    priceWhite: 37,  //
     side: 'one',
-    weightKgPerPanel: 85,
-    reference: "URB-40-GREY",
+    weightKgPerPanel: 75,
+    reference: "ERM.F.0212",
   },
   {
     id: "riverstone",
-    label: "River Stone",
+    label: "River Stone 40mm",
     modelPath: "/models/panels/RiverStone.glb",
     imagePath: "/images/panels/riverStone.jpg",
     heightCm: 50,
-    priceGrey: 25,   // ← было price: 30
-    priceWhite: 33,  //
+    priceGrey: 29,   // ← было price: 30
+    priceWhite: 37,  //
     side: 'one',
-    weightKgPerPanel: 85,
-    reference: "URB-40-GREY",
+    weightKgPerPanel: 75,
+    reference: "ERM.F.0167",
   },
   {
     id: "urbanDouble",
@@ -127,11 +127,11 @@ export const PANEL_MODELS: PanelModel[] = [
     modelPath: "/models/panels/urbanDouble.glb",
     imagePath: "/images/panels/urban40grey.jpg",
     heightCm: 50,
-    priceGrey: 25,   // ← было price: 30
-    priceWhite: 33,  //
+    priceGrey: 30,   // ← было price: 30
+    priceWhite: 38,  //
     side: 'double',
-    weightKgPerPanel: 85,
-    reference: "URB-40-GREY",
+    weightKgPerPanel: 72,
+    reference: "ERM.F.0717",
   },
   {
     id: "WoodDouble",
@@ -139,23 +139,23 @@ export const PANEL_MODELS: PanelModel[] = [
     modelPath: "/models/panels/woodDouble.glb",
     imagePath: "/images/panels/classicwood.jpg",
     heightCm: 50,
-    priceGrey: 25,   // ← было price: 30
-    priceWhite: 33,  //
+    priceGrey: 30,   // ← было price: 30
+    priceWhite: 38,  //
     side: 'double',
-    weightKgPerPanel: 85,
-    reference: "URB-40-GREY",
+    weightKgPerPanel: 72,
+    reference: "ERM.F.0526",
   },
   {
     id: "quinta",
-    label: "Quinta",
+    label: "Quinta 40mm",
     modelPath: "/models/panels/quinta1.glb",
     imagePath: "/images/panels/quinta.jpg",
     heightCm: 50,
     priceGrey: 25,
     priceWhite: 33,
     side: 'one',
-    weightKgPerPanel: 85,
-    reference: "QNT-50",
+    weightKgPerPanel: 40,
+    reference: "ERM.F.0727",
     topOnly: true, // ← только верхний ряд
   },
  /* {
