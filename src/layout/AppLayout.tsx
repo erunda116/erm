@@ -27,7 +27,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               style={{
                 flex: 1, background: 'none', border: 'none',
                 borderBottom: `3px solid ${mobileTab === tab ? '#4fc3a1' : 'transparent'}`,
-                color: mobileTab === tab ? '#4fc3a1' : '#666',
+                color: mobileTab === tab ? '#d3001b' : '#666',
                 fontWeight: 600, fontSize: 13, cursor: 'pointer',
                 transition: 'color 0.2s, border-color 0.2s',
               }}
@@ -58,10 +58,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // Десктоп — как было
   return (
   <div style={{ display: 'flex', height: '100vh', width: '100vw', overflow: 'hidden' }}>
-    <Sidebar />
+    <div style={{ position: 'relative', zIndex: 10, flexShrink: 0 }}>  {/* ← обёртка вокруг sidebar */}
+      <Sidebar />
+    </div>
     <div style={{ flex: 1, position: 'relative', overflow: 'hidden', minWidth: 0 }}>
       {children}
     </div>

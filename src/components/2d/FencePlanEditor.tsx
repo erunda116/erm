@@ -429,7 +429,7 @@ onTouchStart={handleTouchStart}
           {lastPoint && cursor && activeTool === "fence" && (
             <Line
               points={[lastPoint.x, lastPoint.y, cursor.x, cursor.y]}
-              stroke="#4fc3a1"
+              stroke="#d3001b"
               strokeWidth={2 / scale}
               dash={[8 / scale, 4 / scale]}
               listening={false}
@@ -455,7 +455,7 @@ onTouchStart={handleTouchStart}
                 text={`${dragLengthM} м`}
                 fontSize={12 / scale}
                 fontStyle="bold"
-                fill="#4fc3a1"
+                fill="#d3001b"
                 width={40 / scale}
                 align="center"
                 listening={false}
@@ -492,7 +492,7 @@ fill={i === 0 && points.length >= 2 ? "#ff6600" : "red"}
               x={cursor.x}
               y={cursor.y}
               radius={4 / scale}
-              fill={activeTool === "fence" ? "#4fc3a1" : "#f0a500"}
+              fill={activeTool === "fence" ? "#d3001b" : "#f0a500"}
               opacity={0.7}
               listening={false}
             />
@@ -641,7 +641,7 @@ function ToolBtn({ active, onClick, children }: {
       onClick={onClick}
       style={{
         padding: "5px 14px", borderRadius: 7, border: "none", cursor: "pointer",
-        background: active ? "#4fc3a1" : "rgba(255,255,255,0.15)",
+        background: active ? "#d3001b" : "rgba(255,255,255,0.15)",
         color: active ? "#000" : "#fff",
         fontWeight: active ? 700 : 400, fontSize: 13,
         transition: "all 0.15s",

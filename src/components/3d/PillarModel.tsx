@@ -23,7 +23,9 @@ export default function PillarModel({
   panelOrientation = 'outward',
 }: Props) {
   const model = useGLTF(modelPath);
-  const concreteColor = useDesignerStore((s) => s.concreteColor); // ← ДОБАВИТЬ
+  const baseConcreteColor = useDesignerStore((s) => s.baseConcreteColor);
+const selectedRal = useDesignerStore((s) => s.selectedRal);
+const concreteColor = selectedRal ?? baseConcreteColor;// ← ДОБАВИТЬ
 
 
   const clippingPlanes = useMemo(() => [

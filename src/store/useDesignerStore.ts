@@ -86,6 +86,11 @@ type DesignerStore = {
   rows: FenceRow[];
   locale: Locale;        
   setLocale: (l: Locale) => void;
+   tourOpen: boolean;           // ← добавить
+  setTourOpen: (v: boolean) => void; 
+  // В type/interface состояния (где объявлены все поля):
+rowsPopupOpen: boolean;
+setRowsPopupOpen: (v: boolean) => void;
 
   deliveryCity: CityResult | null;
 deliveryDistanceKm: number;
@@ -94,8 +99,11 @@ setDeliveryCity: (city: CityResult | null, distanceKm: number, cost: number) => 
   
 
   //color
-  concreteColor: 'grey' | 'white' | string;
-  setConcreteColor: (color: string) => void;
+  // color
+baseConcreteColor: 'grey' | 'white';
+selectedRal: string | null;
+setBaseConcreteColor: (color: 'grey' | 'white') => void;
+setSelectedRal: (ral: string | null) => void;
 
   // Пиллар
   selectedPillarStyle: PillarStyle;
@@ -143,11 +151,17 @@ export const useDesignerStore = create<DesignerStore>((set, get) => ({
   panelOrientation: 'outward',
   houses: [],
   activeTool: "fence",
-  concreteColor: 'grey',
 setPanelOrientation: (v) => set({ panelOrientation: v }),
-setConcreteColor: (color) => set({ concreteColor: color }),
+baseConcreteColor: 'grey',
+selectedRal: null,
+setBaseConcreteColor: (color) => set({ baseConcreteColor: color }),
+setSelectedRal: (ral) => set({ selectedRal: ral }),
 groundType: 'grid',
   setGroundType: (v) => set({ groundType: v }),
+  tourOpen: false,
+  setTourOpen: (v) => set({ tourOpen: v }),
+rowsPopupOpen: false,                              // ← добавить
+setRowsPopupOpen: (v) => set({ rowsPopupOpen: v }),                        // ← добавить
   deliveryCity: null,
 deliveryDistanceKm: 0,
 deliveryCost: 0,
@@ -245,6 +259,8 @@ setLocale: (locale) => set({ locale }),
     filledRows: [],
     rows: [],
     houses: [],
+    baseConcreteColor: 'grey',
+  selectedRal: null,
   }),
 
   // ─── Дома ─────────────────────────────────────────────────────────────────

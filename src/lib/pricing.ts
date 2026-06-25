@@ -17,9 +17,9 @@ export function calcPrice(
   items: FenceItem[],
   rows: FenceRow[],
   pillar: PillarModel,
-  concreteColor: string
+  baseConcreteColor: 'grey' | 'white'
 ): PriceSummary {
-  const isWhite = concreteColor !== 'grey';
+  const isWhite = baseConcreteColor === 'white';
   const panels = items.filter((i) => i.type === "panel");
   const postCount = items.filter((i) => i.type === "post").length;
 

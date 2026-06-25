@@ -20,7 +20,9 @@ export default function PanelModel({
 }: Props) {
   const model = useGLTF(modelPath);
   const panelOrientation = useDesignerStore((s) => s.panelOrientation);
-  const concreteColor = useDesignerStore((s) => s.concreteColor);
+ const baseConcreteColor = useDesignerStore((s) => s.baseConcreteColor);
+const selectedRal = useDesignerStore((s) => s.selectedRal);
+const concreteColor = selectedRal ?? baseConcreteColor;
   const groupRef = useRef<THREE.Group>(null);
 
   const scaleZ = side === 'double' ? 1 : (panelOrientation === 'inward' ? -1 : 1);
