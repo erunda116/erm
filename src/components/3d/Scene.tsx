@@ -1,25 +1,348 @@
-import { Canvas } from "@react-three/fiber";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls, Grid, useTexture } from "@react-three/drei";
-import { Suspense, useMemo } from "react"; 
+import { Suspense, useMemo, useRef } from "react";
+import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { useDesignerStore } from "../../store/useDesignerStore";
 import PillarModel from "./PillarModel";
 import PanelModel from "./PanelModel";
 import ProceduralHouse from "./ProceduralHouse";
 import * as THREE from "three";
 
-
 const SCALE = 50;
+
+function AxisLabel({
+  text,
+  position,
+  color,
+  onClick,
+}: {
+  text: string;
+  position: [number, number, number];
+  color: string;
+  onClick?: (e: any) => void;
+}) {
+  const canvas = useMemo(() => {
+    const size = 160;
+    const c = document.createElement("canvas");
+    c.width = size;
+    c.height = size;
+
+    const ctx = c.getContext("2d");
+    if (!ctx) return c;
+
+    ctx.clearRect(0, 0, size, size);
+
+    ctx.beginPath();
+    ctx.arc(size / 2, size / 2, 42, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(255,255,255,0.96)";
+    ctx.fill();
+
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = "rgba(15,23,42,0.12)";
+    ctx.stroke();
+
+    ctx.fillStyle = color;
+    ctx.font = "bold 64px Inter, Arial, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(text, size / 2, size / 2 + 1);
+
+    return c;
+  }, [text, color]);
+
+  const texture = useMemo(() => {
+    const t = new THREE.CanvasTexture(canvas);
+    t.needsUpdate = true;
+    return t;
+  }, [canvas]);
+
+  return (
+    <sprite
+      position={position}
+      scale={[0.28, 0.28, 0.28]}
+      renderOrder={999}
+      onClick={onClick}
+    >
+      <spriteMaterial
+        map={texture}
+        transparent
+        depthTest={false}
+        depthWrite={false}
+      />
+    </sprite>
+  );
+}
+
+function CameraSphereGizmo({
+  controlsRef,
+}: {
+  controlsRef: React.RefObject<OrbitControlsImpl | null>;
+}) {
+  const { camera } = useThree();
+  const groupRef = useRef<THREE.Group>(null);
+  const anchorRef = useRef<THREE.Group>(null);
+
+  const animRef = useRef<{
+    active: boolean;
+    start: number;
+    duration: number;
+    fromPos: THREE.Vector3;
+    toPos: THREE.Vector3;
+    fromQuat: THREE.Quaternion;
+    toQuat: THREE.Quaternion;
+  } | null>(null);
+
+  const moveToAxis = (axis: "x" | "y" | "z", negative = false) => {
+    const controls = controlsRef.current;
+    if (!controls) return;
+
+    const target = controls.target.clone();
+    const currentOffset = camera.position.clone().sub(target);
+    const distance = Math.max(currentOffset.length(), 8);
+
+    const dir = new THREE.Vector3();
+    if (axis === "x") dir.set(negative ? -1 : 1, 0, 0);
+    if (axis === "y") dir.set(0, negative ? -1 : 1, 0);
+    if (axis === "z") dir.set(0, 0, negative ? -1 : 1);
+
+    const toPos = target.clone().add(dir.multiplyScalar(distance));
+
+    const tempCam = camera.clone();
+    tempCam.position.copy(toPos);
+    tempCam.lookAt(target);
+
+    animRef.current = {
+      active: true,
+      start: performance.now(),
+      duration: 450,
+      fromPos: camera.position.clone(),
+      toPos,
+      fromQuat: camera.quaternion.clone(),
+      toQuat: tempCam.quaternion.clone(),
+    };
+  };
+
+  useFrame(() => {
+    if (!groupRef.current || !anchorRef.current) return;
+
+    const controls = controlsRef.current;
+    const anim = animRef.current;
+
+    if (anim?.active && controls) {
+      const t = Math.min((performance.now() - anim.start) / anim.duration, 1);
+      const eased = 1 - Math.pow(1 - t, 3);
+
+      camera.position.lerpVectors(anim.fromPos, anim.toPos, eased);
+      camera.quaternion.slerpQuaternions(anim.fromQuat, anim.toQuat, eased);
+      controls.update();
+
+      if (t >= 1) {
+        anim.active = false;
+      }
+    }
+
+    groupRef.current.quaternion.copy(camera.quaternion);
+
+    const offset = new THREE.Vector3(2.6, -1.0, -5.8).applyQuaternion(camera.quaternion);
+    anchorRef.current.position.copy(camera.position).add(offset);
+    anchorRef.current.quaternion.copy(camera.quaternion);
+  });
+
+  return (
+    <group ref={anchorRef} renderOrder={999}>
+      <group ref={groupRef} scale={0.42} renderOrder={999}>
+        <mesh renderOrder={999}>
+          <sphereGeometry args={[0.62, 48, 48]} />
+          <meshStandardMaterial
+            color="#f5f5f4"
+            transparent
+            opacity={0.14}
+            roughness={0.25}
+            metalness={0.0}
+            depthTest={false}
+            depthWrite={false}
+          />
+        </mesh>
+
+        <mesh renderOrder={999}>
+          <sphereGeometry args={[0.625, 24, 24]} />
+          <meshBasicMaterial
+            color="#a8a29e"
+            wireframe
+            transparent
+            opacity={0.7}
+            depthTest={false}
+            depthWrite={false}
+          />
+        </mesh>
+
+        <mesh renderOrder={999}>
+          <sphereGeometry args={[0.07, 24, 24]} />
+          <meshStandardMaterial
+            color="#57534e"
+            metalness={0.2}
+            roughness={0.4}
+            depthTest={false}
+            depthWrite={false}
+          />
+        </mesh>
+
+        <mesh
+          rotation={[0, 0, Math.PI / 2]}
+          position={[0.31, 0, 0]}
+          renderOrder={999}
+          onClick={(e) => {
+            e.stopPropagation();
+            moveToAxis("x");
+          }}
+        >
+          <cylinderGeometry args={[0.01, 0.01, 0.62, 16]} />
+          <meshStandardMaterial
+            color="#c2410c"
+            emissive="#7c2d12"
+            emissiveIntensity={0.18}
+            depthTest={false}
+            depthWrite={false}
+          />
+        </mesh>
+
+        <mesh
+          position={[0.66, 0, 0]}
+          renderOrder={999}
+          onClick={(e) => {
+            e.stopPropagation();
+            moveToAxis("x");
+          }}
+        >
+          <sphereGeometry args={[0.055, 20, 20]} />
+          <meshStandardMaterial
+            color="#c2410c"
+            depthTest={false}
+            depthWrite={false}
+          />
+        </mesh>
+
+        <AxisLabel
+          text="X"
+          position={[0.9, 0, 0]}
+          color="#c2410c"
+          onClick={(e) => {
+            e.stopPropagation();
+            moveToAxis("x");
+          }}
+        />
+
+        <mesh
+          position={[0, 0.31, 0]}
+          renderOrder={999}
+          onClick={(e) => {
+            e.stopPropagation();
+            moveToAxis("y");
+          }}
+        >
+          <cylinderGeometry args={[0.01, 0.01, 0.62, 16]} />
+          <meshStandardMaterial
+            color="#15803d"
+            emissive="#14532d"
+            emissiveIntensity={0.18}
+            depthTest={false}
+            depthWrite={false}
+          />
+        </mesh>
+
+        <mesh
+          position={[0, 0.66, 0]}
+          renderOrder={999}
+          onClick={(e) => {
+            e.stopPropagation();
+            moveToAxis("y");
+          }}
+        >
+          <sphereGeometry args={[0.055, 20, 20]} />
+          <meshStandardMaterial
+            color="#15803d"
+            depthTest={false}
+            depthWrite={false}
+          />
+        </mesh>
+
+        <AxisLabel
+          text="Y"
+          position={[0, 0.9, 0]}
+          color="#15803d"
+          onClick={(e) => {
+            e.stopPropagation();
+            moveToAxis("y");
+          }}
+        />
+
+        <mesh
+          rotation={[Math.PI / 2, 0, 0]}
+          position={[0, 0, 0.31]}
+          renderOrder={999}
+          onClick={(e) => {
+            e.stopPropagation();
+            moveToAxis("z");
+          }}
+        >
+          <cylinderGeometry args={[0.01, 0.01, 0.62, 16]} />
+          <meshStandardMaterial
+            color="#1d4ed8"
+            emissive="#1e3a8a"
+            emissiveIntensity={0.18}
+            depthTest={false}
+            depthWrite={false}
+          />
+        </mesh>
+
+        <mesh
+          position={[0, 0, 0.66]}
+          renderOrder={999}
+          onClick={(e) => {
+            e.stopPropagation();
+            moveToAxis("z");
+          }}
+        >
+          <sphereGeometry args={[0.055, 20, 20]} />
+          <meshStandardMaterial
+            color="#1d4ed8"
+            depthTest={false}
+            depthWrite={false}
+          />
+        </mesh>
+
+        <AxisLabel
+          text="Z"
+          position={[0, 0, 0.9]}
+          color="#1d4ed8"
+          onClick={(e) => {
+            e.stopPropagation();
+            moveToAxis("z");
+          }}
+        />
+      </group>
+    </group>
+  );
+}
 
 export default function Scene() {
   const panelOrientation = useDesignerStore((s) => s.panelOrientation);
-  const fenceItems   = useDesignerStore((s) => s.fenceItems);
+  const fenceItems = useDesignerStore((s) => s.fenceItems);
   const fenceHeightCm = useDesignerStore((s) => s.fenceHeightCm);
-  const rows         = useDesignerStore((s) => s.rows);
-const singleModel  = useDesignerStore((s) => s.singleModel);
-const singlePanel  = useDesignerStore((s) => s.singlePanel);
+  const rows = useDesignerStore((s) => s.rows);
+  const singleModel = useDesignerStore((s) => s.singleModel);
+  const singlePanel = useDesignerStore((s) => s.singlePanel);
   const activePillar = useDesignerStore((s) => s.activePillar);
-  const houses       = useDesignerStore((s) => s.houses);
-  const PILLAR_INWARD_OFFSET = 0.12; 
+  const houses = useDesignerStore((s) => s.houses);
+
+  const controlsRef = useRef<OrbitControlsImpl | null>(null);
+
+  function getRow(rowIndex: number) {
+    if (singleModel) {
+      return { heightCm: fenceHeightCm, panel: singlePanel };
+    }
+    return rows[rowIndex] ?? rows[0];
+  }
 
   return (
     <Canvas
@@ -30,84 +353,99 @@ const singlePanel  = useDesignerStore((s) => s.singlePanel);
     >
       <ambientLight intensity={1.2} />
       <directionalLight
-        position={[15, 20, 10]} intensity={2}
+        position={[15, 20, 10]}
+        intensity={2}
         castShadow
         shadow-mapSize={[2048, 2048]}
       />
 
-      {/* Дома */}
       {houses.map((house) => (
         <ProceduralHouse
           key={house.id}
-          x={house.x} z={house.z}
+          x={house.x}
+          z={house.z}
           widthPx={house.widthPx}
           depthPx={house.depthPx}
         />
       ))}
 
-      {/* Забор */}
       {fenceItems.map((item, idx) => {
         const x = item.x / SCALE;
         const z = item.z / SCALE;
         const rotY = -item.rotation;
 
         if (item.type === "post") {
-  // При inward сдвигаем пиллар вдоль направления секции
-  
-   return (
-    <Suspense fallback={null} key={`post-${idx}`}>
-      <PillarModel
-        modelPath={activePillar.modelPath}
-        burialM={activePillar.burialCm / 100}
-        fenceHeightM={fenceHeightCm / 100}
-        position={[x, 0, z]}
-        rotation={[0, rotY, 0]}
-        panelOrientation={panelOrientation}
-      />
-    </Suspense>
-  );
-}
-const row = getRow(item.rowIndex ?? 0);
-if (!row) return null;
-function getRow(rowIndex: number) {
-  if (singleModel) {
-    return { heightCm: fenceHeightCm, panel: singlePanel };
-  }
-  return rows[rowIndex] ?? rows[0];
-}
+          return (
+            <Suspense fallback={null} key={`post-${idx}`}>
+              <PillarModel
+                modelPath={activePillar.modelPath}
+                burialM={activePillar.burialCm / 100}
+                fenceHeightM={fenceHeightCm / 100}
+                position={[x, 0, z]}
+                rotation={[0, rotY, 0]}
+                panelOrientation={panelOrientation}
+              />
+            </Suspense>
+          );
+        }
 
-const is30 = row.panel.heightCm === 30;
-const isDouble = row.panel.side === 'double'; 
-const panelOffset = 
-  is30 ? (panelOrientation === 'inward' ? 0.06 : -0.06) :
-  isDouble ? (panelOrientation === 'inward' ? 0.02 : -0.02) :  // ← ДОБАВИТЬ
-  0;
-const px = x + panelOffset * Math.sin(rotY); // ← sin/cos поменял местами
-const pz = z + panelOffset * Math.cos(rotY); // ← убрал минус
+        const row = getRow(item.rowIndex ?? 0);
+        if (!row) return null;
 
-return (
-  <Suspense fallback={null} key={`panel-${idx}`}>
-    <PanelModel
-      modelPath={row.panel.modelPath}
-      position={[px, item.y, pz]}
-      rotation={[0, rotY, 0]}
-      widthRatio={item.widthRatio ?? 1}
-    />
-  </Suspense>
-);
+        const is30 = row.panel.heightCm === 30;
+        const isDouble = row.panel.side === "double";
+
+        const panelOffset =
+          is30
+            ? panelOrientation === "inward"
+              ? 0.06
+              : -0.06
+            : isDouble
+            ? panelOrientation === "inward"
+              ? 0.02
+              : -0.02
+            : 0;
+
+        const px = x + panelOffset * Math.sin(rotY);
+        const pz = z + panelOffset * Math.cos(rotY);
+
+        return (
+          <Suspense fallback={null} key={`panel-${idx}`}>
+            <PanelModel
+              modelPath={row.panel.modelPath}
+              position={[px, item.y, pz]}
+              rotation={[0, rotY, 0]}
+              widthRatio={item.widthRatio ?? 1}
+            />
+          </Suspense>
+        );
       })}
-      
-      <OrbitControls makeDefault />
-            <Suspense fallback={null}>
+
+      <OrbitControls
+        ref={controlsRef}
+        makeDefault
+        enableDamping
+        dampingFactor={0.08}
+        screenSpacePanning={false}
+        minDistance={4}
+        maxDistance={120}
+        minPolarAngle={0}
+        maxPolarAngle={Math.PI}
+      />
+
+      <CameraSphereGizmo controlsRef={controlsRef} />
+
+      <Suspense fallback={null}>
         <GroundPlane />
       </Suspense>
     </Canvas>
   );
 }
+
 function GroundPlane() {
   const groundType = useDesignerStore((s) => s.groundType);
 
-  if (groundType === 'grid') {
+  if (groundType === "grid") {
     return (
       <>
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, 0]} receiveShadow>
@@ -133,17 +471,15 @@ function GroundPlane() {
   return <TexturedGround groundType={groundType} />;
 }
 
-// ← отдельный компонент, useTexture всегда вызывается безусловно
-function TexturedGround({ groundType }: { groundType: 'grass' | 'calcada' | 'ground' }) {
+function TexturedGround({ groundType }: { groundType: "grass" | "calcada" | "ground" }) {
   const texturePath = {
-    grass:   '/textures/grass.jpg',
-    calcada: '/textures/calcada.jpg',
-    ground:  '/textures/ground.jpg',
+    grass: "/textures/grass.jpg",
+    calcada: "/textures/calcada.jpg",
+    ground: "/textures/ground.jpg",
   }[groundType];
 
   const texture = useTexture(texturePath);
 
-  // useMemo чтобы не мутировать напрямую
   useMemo(() => {
     texture.wrapS = THREE.RepeatWrapping;
     texture.wrapT = THREE.RepeatWrapping;
