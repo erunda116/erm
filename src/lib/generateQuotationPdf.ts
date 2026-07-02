@@ -18,11 +18,12 @@ type QuotationData = {
   pillar: PillarModel;
   rows: FenceRow[];
   fenceHeightCm: number;
-  baseConcreteColor: 'grey' | 'white'
+  baseConcreteColor: 'grey' | 'white';
   panelOrientation: 'outward' | 'inward';
   textureSide?: 'inward' | 'outward' | 'double';
   deliveryCity?: CityResult | null;
   deliveryDistanceKm?: number;
+  deliveryTrucks?: number;
   deliveryCost?: number;
   locale?: Locale;
   selectedRal?: string;
@@ -39,6 +40,7 @@ export async function generateQuotationPdf(data: QuotationData): Promise<void> {
     textureSide,
     deliveryCity,
     deliveryDistanceKm,
+    deliveryTrucks,
     deliveryCost,
     locale = 'en',
   } = data;
@@ -81,7 +83,6 @@ export async function generateQuotationPdf(data: QuotationData): Promise<void> {
       ? t('quotationTextureInward')
       : t('quotationTextureOutward');
 
-  // ── LOGO ──────────────────────────────────────────────────────────────────
   let logoH = 14;
   let logoW = 42;
 
@@ -103,13 +104,11 @@ export async function generateQuotationPdf(data: QuotationData): Promise<void> {
     doc.text('EUROMURO', margin, 22);
   }
 
-  // ── TAGLINE ───────────────────────────────────────────────────────────────
   doc.setFont('helvetica', 'italic');
   doc.setFontSize(7);
   doc.setTextColor(120, 120, 120);
   drawWrappedText(t('tagline'), margin, 10 + logoH + 4, 90);
 
-  // ── COMPANY INFO ──────────────────────────────────────────────────────────
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
   doc.setTextColor(80, 80, 80);
@@ -124,13 +123,11 @@ export async function generateQuotationPdf(data: QuotationData): Promise<void> {
     doc.text(text, pageW - margin - tw, 13 + i * 4);
   });
 
-  // ── DIVIDER ───────────────────────────────────────────────────────────────
   const dividerY = 34;
   doc.setDrawColor(MID_GRAY);
   doc.setLineWidth(0.3);
   doc.line(margin, dividerY, pageW - margin, dividerY);
 
-  // ── HEADER ────────────────────────────────────────────────────────────────
   const headerY = dividerY + 4;
   doc.setFillColor(BRAND_RED);
   doc.rect(margin, headerY, 3, 9, 'F');
@@ -158,14 +155,12 @@ export async function generateQuotationPdf(data: QuotationData): Promise<void> {
   doc.text(dateStr, pageW - margin - doc.getTextWidth(dateStr), headerY + 4);
   doc.text(expiryStr, pageW - margin - doc.getTextWidth(expiryStr), headerY + 9);
 
-  // ── CUSTOM TEXT ───────────────────────────────────────────────────────────
   const customY = headerY + 14;
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8.5);
   doc.setTextColor(80, 80, 80);
   drawWrappedText(t('quotationCustomText'), margin, customY, pageW - margin * 2);
 
-  // ── CONFIG ────────────────────────────────────────────────────────────────
   const configY = customY + 10;
   doc.setFillColor(LIGHT_GRAY);
   doc.roundedRect(margin, configY, pageW - margin * 2, 20, 2, 2, 'F');
@@ -206,7 +201,6 @@ export async function generateQuotationPdf(data: QuotationData): Promise<void> {
     doc.text(lines, cx, configY + 16);
   });
 
-  // ── TABLE ─────────────────────────────────────────────────────────────────
   const tableRows: (string | number)[][] = [];
 
   price.rowBreakdown.forEach((row) => {
@@ -236,14 +230,20 @@ export async function generateQuotationPdf(data: QuotationData): Promise<void> {
   ]);
 
   if (deliveryCity && deliveryCost) {
-    tableRows.push([
-      `${t('quotationDeliveryLabel')} — ${safe(deliveryCity.displayName.split(',')[0])}`,
-      1,
-      `${safe(deliveryCost)} €`,
-      '23%',
-      `${safe(deliveryCost)} €`,
-    ]);
-  }
+  const cityName = safe(deliveryCity.displayName.split(',')[0]);
+  const trucksLabel =
+    deliveryTrucks && deliveryTrucks > 0
+      ? ` (trucks x ${deliveryTrucks})`
+      : '';
+
+  tableRows.push([
+    `${t('quotationDeliveryLabel')} — ${cityName}${trucksLabel}`,
+    1,
+    `${safe(deliveryCost)} €`,
+    '23%',
+    `${safe(deliveryCost)} €`,
+  ]);
+}
 
   autoTable(doc, {
     startY: configY + 24,
@@ -276,7 +276,6 @@ export async function generateQuotationPdf(data: QuotationData): Promise<void> {
 
   const afterTable = (doc as any).lastAutoTable.finalY + 6;
 
-  // ── TOTALS ────────────────────────────────────────────────────────────────
   const deliveryTotal = deliveryCity && deliveryCost ? deliveryCost : 0;
   const subtotal = Math.round((price.panelTotal + price.postTotal + deliveryTotal) * 100) / 100;
   const taxAmount = Math.round(subtotal * TAX_RATE * 100) / 100;
@@ -305,7 +304,6 @@ export async function generateQuotationPdf(data: QuotationData): Promise<void> {
   doc.text(t('quotationTotal').toUpperCase(), totalBlockX + 4, afterTable + 34);
   doc.text(`${grandTotal} €`, totalBlockX + 80, afterTable + 34, { align: 'right' });
 
-  // ── EXTRA ─────────────────────────────────────────────────────────────────
   const extraY = afterTable + 44;
   const extraRows: [string, string][] = [
     [safe(t('quotationWeight')), `${safe(price.totalWeightKg)} kg`],
@@ -335,7 +333,6 @@ export async function generateQuotationPdf(data: QuotationData): Promise<void> {
     doc.setFont('helvetica', 'normal');
   });
 
-  // ── TERMS ─────────────────────────────────────────────────────────────────
   const termsY = extraY + extraBoxH + 6;
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
@@ -346,7 +343,6 @@ export async function generateQuotationPdf(data: QuotationData): Promise<void> {
   doc.setTextColor(BRAND_RED);
   doc.textWithLink(termsUrl, margin + 30, termsY, { url: termsUrl });
 
-  // ── FOOTER ────────────────────────────────────────────────────────────────
   doc.setDrawColor(MID_GRAY);
   doc.setLineWidth(0.3);
   doc.line(margin, pageH - 14, pageW - margin, pageH - 14);

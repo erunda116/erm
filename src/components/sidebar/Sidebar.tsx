@@ -12,7 +12,7 @@ import type { PanelModel } from "../../data/panels";
 import type { PillarModel, PillarStyle } from "../../data/posts";
 import { PANEL_MODELS } from "../../data/panels";
 import { generateQuotationPdf } from '../../lib/generateQuotationPdf';
-import { searchCities, roadDistanceKm, calcDelivery } from '../../lib/delivery';
+import { searchCities, roadDistanceKm, calcDelivery, getTruckCount } from '../../lib/delivery';
 import type { CityResult } from '../../lib/delivery';
 import { useT } from '../../lib/i18n';
 import TourGuide from '../ui/TourGuide';
@@ -41,7 +41,10 @@ export default function Sidebar() {
 const selectedRal = useDesignerStore((s) => s.selectedRal);
 const setBaseConcreteColor = useDesignerStore((s) => s.setBaseConcreteColor);
 const setSelectedRal = useDesignerStore((s) => s.setSelectedRal);
-  const { deliveryCity, deliveryCost, deliveryDistanceKm, setDeliveryCity } = useDesignerStore();
+ const deliveryCity = useDesignerStore((s) => s.deliveryCity);
+const deliveryCost = useDesignerStore((s) => s.deliveryCost);
+const deliveryDistanceKm = useDesignerStore((s) => s.deliveryDistanceKm);
+const setDeliveryCity = useDesignerStore((s) => s.setDeliveryCity);
  
 
   const price = calcPrice(fenceItems, rows, activePillar, baseConcreteColor);
@@ -221,6 +224,7 @@ const concreteColor = selectedRal ?? baseConcreteColor;
   panelOrientation,
   deliveryCity,
   deliveryDistanceKm,
+  deliveryTrucks: deliveryCity ? getTruckCount(price.totalWeightKg) : 0,
   deliveryCost,
   locale
 })}
@@ -244,12 +248,14 @@ const concreteColor = selectedRal ?? baseConcreteColor;
             <>
              <div id="tour-delivery">
   <DeliveryBlock
-    weightKg={price.totalWeightKg}
-    deliveryCity={deliveryCity}
-    deliveryDistanceKm={deliveryDistanceKm}
-    deliveryCost={deliveryCost}
-    onCityChange={(city, dist, cost) => setDeliveryCity(city, dist, cost)}
-  />
+  weightKg={price.totalWeightKg}
+  deliveryCity={deliveryCity}
+  deliveryDistanceKm={deliveryDistanceKm}
+  deliveryCost={deliveryCost}
+  onCityChange={(city, dist, cost) =>
+    setDeliveryCity(city, dist, cost)
+  }
+/>
 </div>
               <PriceBlock
                 price={price}
@@ -625,10 +631,22 @@ function PriceBlock({ price, pillar, totalLengthM, totalWeightKg, isWhite }: {
 
 // ─── DeliveryBlock ─────────────────────────────────────────────────────────────
 
-function DeliveryBlock({ weightKg, deliveryCity, deliveryDistanceKm, deliveryCost, onCityChange }: {
-  weightKg: number; deliveryCity: CityResult | null;
-  deliveryDistanceKm: number; deliveryCost: number;
-  onCityChange: (city: CityResult | null, dist: number, cost: number) => void;
+function DeliveryBlock({
+  weightKg,
+  deliveryCity,
+  deliveryDistanceKm,
+  deliveryCost,
+  onCityChange,
+}: {
+  weightKg: number;
+  deliveryCity: CityResult | null;
+  deliveryDistanceKm: number;
+  deliveryCost: number;
+  onCityChange: (
+    city: CityResult | null,
+    dist: number,
+    cost: number
+  ) => void;
 }) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<CityResult[]>([]);
@@ -636,67 +654,199 @@ function DeliveryBlock({ weightKg, deliveryCity, deliveryDistanceKm, deliveryCos
   const [open, setOpen] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const t = useT();
+  useEffect(() => {
+  if (deliveryCity) {
+    setQuery(deliveryCity.displayName.split(',').slice(0, 2).join(','));
+  }
+}, [deliveryCity]);
+
+  const trucks = weightKg > 0 ? getTruckCount(weightKg) : 0;
 
   const handleInput = (val: string) => {
-    setQuery(val); setOpen(true);
+    setQuery(val);
+    setOpen(true);
+
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    if (val.length < 2) { setResults([]); return; }
+
+    if (val.trim().length < 2) {
+      setResults([]);
+      return;
+    }
+
     debounceRef.current = setTimeout(async () => {
       setLoading(true);
-      const cities = await searchCities(val);
-      setResults(cities); setLoading(false);
+      try {
+        const cities = await searchCities(val);
+        setResults(cities);
+      } catch (e) {
+        setResults([]);
+      } finally {
+        setLoading(false);
+      }
     }, 400);
   };
+  useEffect(() => {
+  if (!deliveryCity) return;
+
+  if (weightKg <= 0) {
+    onCityChange(deliveryCity, 0, 0);
+    return;
+  }
+
+  const dist = roadDistanceKm(deliveryCity.lat, deliveryCity.lng);
+  const cost = calcDelivery(dist, weightKg);
+
+  onCityChange(deliveryCity, dist, cost);
+}, [deliveryCity, weightKg]);
 
   const handleSelect = (city: CityResult) => {
-    const dist = roadDistanceKm(city.lat, city.lng);
-    const cost = calcDelivery(dist, weightKg);
-    onCityChange(city, dist, cost);
-    setQuery(city.displayName.split(',').slice(0, 2).join(','));
-    setResults([]); setOpen(false);
-  };
+  const dist = roadDistanceKm(city.lat, city.lng);
+  const cost = calcDelivery(dist, weightKg);  // ← вот тут считаем цену
+
+  onCityChange(city, dist, cost);             // ← и тут её передаём
+
+  setQuery(city.displayName.split(',').slice(0, 2).join(','));
+  setResults([]);
+  setOpen(false);
+  
+};
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-      <div style={{ fontSize: 10, color: '#000', fontWeight: 600, letterSpacing: 1 }}>{t('delivery')}</div>
+      <div style={{ fontSize: 10, color: '#000', fontWeight: 600, letterSpacing: 1 }}>
+        🚚 {t('delivery')}
+      </div>
+
       <div style={{ position: 'relative' }}>
         <input
-          type="text" value={query} onChange={(e) => handleInput(e.target.value)}
+          type="text"
+          value={query}
+          onChange={(e) => handleInput(e.target.value)}
           placeholder={t('deliveryPlaceholder')}
-          style={{ width: '100%', padding: '6px 28px 6px 8px', background: '#fff', border: '1px solid #333', borderRadius: 6, color: '#000', fontSize: 11, outline: 'none', boxSizing: 'border-box' }}
+          style={{
+            width: '100%',
+            padding: '6px 28px 6px 8px',
+            background: '#fff',
+            border: '1px solid #333',
+            borderRadius: 6,
+            color: '#000',
+            fontSize: 11,
+            outline: 'none',
+            boxSizing: 'border-box',
+          }}
         />
+
         {query && (
-          <button onClick={() => { setQuery(''); setResults([]); onCityChange(null, 0, 0); }}
-            style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#fff', cursor: 'pointer', fontSize: 14 }}>×</button>
+          <button
+            onClick={() => {
+              setQuery('');
+              setResults([]);
+              setOpen(false);
+              onCityChange(null, 0, 0);
+            }}
+            style={{
+              position: 'absolute',
+              right: 6,
+              top: '50%',
+              transform: 'translateY(-50%)',
+              background: 'none',
+              border: 'none',
+              color: '#000',
+              cursor: 'pointer',
+              fontSize: 14,
+            }}
+          >
+            ×
+          </button>
         )}
+
         {open && (results.length > 0 || loading) && (
-          <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: '#222', border: '1px solid #444', borderRadius: 6, zIndex: 100, maxHeight: 180, overflowY: 'auto', marginTop: 2, boxShadow: '0 8px 24px rgba(0,0,0,0.5)' }}>
-            {loading && <div style={{ padding: '8px', color: '#000', fontSize: 11 }}>{t('searching')}</div>}
-            {results.map((city, i) => {
-              const parts = city.displayName.split(',');
-              return (
-                <div key={i} onClick={() => handleSelect(city)}
-                  style={{ padding: '7px 10px', cursor: 'pointer', borderBottom: '1px solid #2a2a2a' }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = '#2a2a2a')}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
-                  <div style={{ color: '#fff', fontSize: 12, fontWeight: 600 }}>{parts[0]}</div>
-                  <div style={{ color: '#fff', fontSize: 10 }}>{parts.slice(1, 3).join(',')}</div>
-                </div>
-              );
-            })}
+          <div
+            style={{
+              position: 'absolute',
+              top: '100%',
+              left: 0,
+              right: 0,
+              background: '#222',
+              border: '1px solid #444',
+              borderRadius: 6,
+              zIndex: 100,
+              maxHeight: 180,
+              overflowY: 'auto',
+              marginTop: 2,
+              boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+            }}
+          >
+            {loading && (
+              <div style={{ padding: '8px', color: '#fff', fontSize: 11 }}>
+                {t('searching')}
+              </div>
+            )}
+
+            {!loading &&
+              results.map((city, i) => {
+                const parts = city.displayName.split(',');
+
+                return (
+                  <div
+                    key={i}
+                    onClick={() => handleSelect(city)}
+                    style={{
+                      padding: '7px 10px',
+                      cursor: 'pointer',
+                      borderBottom: '1px solid #2a2a2a',
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = '#2a2a2a')}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                  >
+                    <div style={{ color: '#fff', fontSize: 12, fontWeight: 600 }}>
+                      {parts[0]}
+                    </div>
+                    <div style={{ color: '#fff', fontSize: 10 }}>
+                      {parts.slice(1, 3).join(',')}
+                    </div>
+                  </div>
+                );
+              })}
           </div>
         )}
       </div>
+
       {deliveryCity && (
-        <div style={{ background: '#fff', borderRadius: 6, padding: '6px 8px', display: 'flex', flexDirection: 'column', gap: 3, border: '1px solid #000000' }}>
+        <div
+          style={{
+            background: '#fff',
+            borderRadius: 6,
+            padding: '6px 8px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 4,
+            border: '1px solid #000000',
+          }}
+        >
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10 }}>
             <span style={{ color: '#000' }}>Distance</span>
-            <span style={{ color: '#000', fontWeight: 600 }}>{deliveryDistanceKm}km</span>
+            <span style={{ color: '#000', fontWeight: 600 }}>
+              {deliveryDistanceKm} km
+            </span>
           </div>
-          <div style={{ height: 1, background: '#2a2a2a' }} />
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10 }}>
+            <span style={{ color: '#666' }}>🚚 Trucks</span>
+            <span style={{ color: '#000', fontWeight: 600 }}>
+              {trucks}
+            </span>
+          </div>
+
+          <div style={{ height: 1, background: '#dcdcdc' }} />
+
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: '#000' }}>Delivery</span>
-            <span style={{ fontSize: 13, fontWeight: 700, color: '#f39c12' }}>{deliveryCost}€</span>
+            <span style={{ fontSize: 11, fontWeight: 700, color: '#000' }}>
+              Delivery
+            </span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: '#f39c12' }}>
+              {Number.isFinite(deliveryCost) ? `${deliveryCost}€` : '0€'}
+            </span>
           </div>
         </div>
       )}

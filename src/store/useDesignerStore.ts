@@ -177,7 +177,11 @@ locale: 'en',
   // Delivery
 
 setDeliveryCity: (city: CityResult | null, distanceKm: number, cost: number) =>
-  set({ deliveryCity: city, deliveryDistanceKm: distanceKm, deliveryCost: cost }),
+  set({
+    deliveryCity: city,
+    deliveryDistanceKm: distanceKm,
+    deliveryCost: cost,
+  }),
 
   setFenceHeight: (cm) => {
     const { selectedPillarStyle } = get();
@@ -258,14 +262,17 @@ setLocale: (locale) => set({ locale }),
 },
 
   clearAll: () => set({
-    boundaryPoints: [],
-    fenceItems: [],
-    filledRows: [],
-    rows: [],
-    houses: [],
-    baseConcreteColor: 'grey',
+  boundaryPoints: [],
+  fenceItems: [],
+  filledRows: [],
+  rows: [],
+  houses: [],
+  baseConcreteColor: 'grey',
   selectedRal: null,
-  }),
+  deliveryCity: null,
+  deliveryDistanceKm: 0,
+  deliveryCost: 0,
+}),
 
   // ─── Дома ─────────────────────────────────────────────────────────────────
 
