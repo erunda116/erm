@@ -197,8 +197,8 @@ const concreteColor = selectedRal ?? baseConcreteColor;
  <div style={{ fontSize: 10, color: "#000" }}>
   {selectedRal
     ? baseConcreteColor === 'white'
-      ? 'RAL color · white concrete price (painting included)'
-      : 'RAL color · grey concrete price'
+      ? t('paintingRalTip')
+      : t('paintingRalGrey')
     : baseConcreteColor === 'grey'
     ? t('standardGrey')
     : t('whiteConcrete')}
@@ -262,7 +262,7 @@ const concreteColor = selectedRal ?? baseConcreteColor;
           ) : (
             <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
               <div style={{ fontSize: 11, color: "#444", textAlign: "center" }}>
-                Draw a fence<br/>to see the price
+                 {t('drawTheFenceToSee')}
               </div>
             </div>
           )}
@@ -367,7 +367,7 @@ function RowsSummary({ onEdit, id }: { onEdit: () => void, id?: string }) {
           <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
             {filledRows.map((row, i) => (
               <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: 11 }}>
-                <span style={{ color: "#ccc" }}>Row {i + 1}: {row.panel.label}</span>
+                <span style={{ color: "#ccc" }}>{t('nameRow')} {i + 1}: {row.panel.label}</span>
                 <span style={{ color: "#000" }}>{row.heightCm} cm</span>
               </div>
             ))}
@@ -390,7 +390,7 @@ function RowsSummary({ onEdit, id }: { onEdit: () => void, id?: string }) {
 
 function RowsPopup({ onClose }: { onClose: () => void }) {
   const baseConcreteColor = useDesignerStore((s) => s.baseConcreteColor);
-
+const t = useT();
   return (
     <>
       {/* Overlay */}
@@ -427,7 +427,7 @@ function RowsPopup({ onClose }: { onClose: () => void }) {
       >
         {/* Шапка попапа */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: "#fff" }}>Configure Rows</div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: "#fff" }}>{t('rowModelsTitle')}</div>
           <button
             onClick={onClose}
             style={{

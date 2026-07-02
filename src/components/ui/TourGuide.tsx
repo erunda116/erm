@@ -771,9 +771,32 @@ if (isMobileNow && stepIsLate) {
               </div>
 
               <div style={{ fontSize: 12, color: "#fff", lineHeight: 1.5 }}>
-                {t(current.textKey as any)}
-              </div>
-
+  {current.textKey === "tourStep12Text" ? (
+    <>
+      {t("tourStep12TextBefore" as any)}
+      <a
+        href="https://euromuro.eu/contact-sales/"
+        target="_blank"
+        rel="noopener noreferrer"
+        style={{
+          display: "inline-block",
+          margin: "0 4px",
+          color: "#fff",
+          background: "#d3001b",
+          padding: "2px 8px",
+          borderRadius: 6,
+          textDecoration: "none",
+          fontWeight: 700,
+        }}
+      >
+        {t("tourSalesDepartment" as any)}
+      </a>
+      {t("tourStep12TextAfter" as any)}
+    </>
+  ) : (
+    t(current.textKey as any)
+  )}
+</div>
               {current.watchStore && (
                 <div
                   style={{
