@@ -6,6 +6,7 @@ import type { FenceRow } from '../store/useDesignerStore';
 import type { CityResult } from './delivery';
 import { translations } from './i18n';
 import type { Locale, TranslationKey } from './i18n';
+import { renderFenceSegmentPage } from './renderFenceSegmentPage';
 
 const BRAND_RED = '#d3001b';
 const BRAND_BLACK = '#1a1a1a';
@@ -389,7 +390,14 @@ export async function generateQuotationPdf(data: QuotationData): Promise<void> {
   doc.setFontSize(7.5);
   const pageNumTw = doc.getTextWidth(pageLabel);
   doc.text(pageLabel, pageW - margin - pageNumTw, footerY);
-
+  await renderFenceSegmentPage({
+  doc,
+  price,
+  pillar,
+  rows,
+  fenceHeightCm,
+  locale,
+});
   doc.save(`EuroMuro_Quotation_${quoteNum}.pdf`);
 }
 
