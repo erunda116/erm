@@ -758,7 +758,7 @@ function triggerStyle(open: boolean): React.CSSProperties {
 const dropdownListStyle: React.CSSProperties = {
   position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0,
   background: "#222", border: "2px solid #444", borderRadius: 8,
-  overflow: "auto", maxHeight: 240, zIndex: 1000, boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
+  overflow: "auto", maxHeight: 240, zIndex: 999999, boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
 };
 
 function dropdownItemStyle(selected: boolean, isLast: boolean): React.CSSProperties {

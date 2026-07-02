@@ -91,6 +91,8 @@ type DesignerStore = {
   // В type/interface состояния (где объявлены все поля):
 rowsPopupOpen: boolean;
 setRowsPopupOpen: (v: boolean) => void;
+mobileTab: 'preview' | 'settings';
+setMobileTab: (tab: 'preview' | 'settings') => void;
 
   deliveryCity: CityResult | null;
 deliveryDistanceKm: number;
@@ -161,7 +163,9 @@ groundType: 'grid',
   tourOpen: false,
   setTourOpen: (v) => set({ tourOpen: v }),
 rowsPopupOpen: false,                              // ← добавить
-setRowsPopupOpen: (v) => set({ rowsPopupOpen: v }),                        // ← добавить
+setRowsPopupOpen: (v) => set({ rowsPopupOpen: v }),
+mobileTab: 'settings',
+setMobileTab: (tab) => set({ mobileTab: tab }),                        // ← добавить
   deliveryCity: null,
 deliveryDistanceKm: 0,
 deliveryCost: 0,

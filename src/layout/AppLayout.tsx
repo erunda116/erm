@@ -1,9 +1,12 @@
 import { useState, useEffect } from "react";
 import Sidebar from "../components/sidebar/Sidebar";
+import { useDesignerStore } from "../store/useDesignerStore";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-  const [mobileTab, setMobileTab] = useState<"settings" | "view">("view");
+
+  const mobileTab = useDesignerStore((s) => s.mobileTab);
+  const setMobileTab = useDesignerStore((s) => s.setMobileTab);
 
   useEffect(() => {
     const handler = () => setIsMobile(window.innerWidth < 768);
@@ -15,7 +18,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     return (
       <div className="app-layout app-layout--mobile">
         <div className="app-layout__mobile-tabs">
-          {(["view", "settings"] as const).map((tab) => (
+          {(["preview", "settings"] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setMobileTab(tab)}
@@ -37,8 +40,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
 
           <div
-            className="app-layout__mobile-panel app-layout__mobile-panel--view"
-            style={{ display: mobileTab === "view" ? "block" : "none" }}
+            className="app-layout__mobile-panel app-layout__mobile-panel--preview"
+            style={{ display: mobileTab === "preview" ? "block" : "none" }}
           >
             {children}
           </div>
