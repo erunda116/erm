@@ -33,8 +33,8 @@ function AxisLabel({
     ctx.clearRect(0, 0, size, size);
 
     ctx.beginPath();
-    ctx.arc(size / 2, size / 2, 42, 0, Math.PI * 2);
-    ctx.fillStyle = "rgba(255,255,255,0.96)";
+    ctx.arc(size / 2, size / 2, 122, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(158,158,158,0.96)";
     ctx.fill();
 
     ctx.lineWidth = 4;
@@ -42,7 +42,7 @@ function AxisLabel({
     ctx.stroke();
 
     ctx.fillStyle = color;
-    ctx.font = "bold 64px Inter, Arial, sans-serif";
+    ctx.font = "bold 154px Inter, Arial, sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText(text, size / 2, size / 2 + 1);
@@ -78,7 +78,7 @@ function CameraSphereGizmo({
 }: {
   controlsRef: React.RefObject<OrbitControlsImpl | null>;
 }) {
-  const { camera } = useThree();
+  const { camera, size } = useThree();
   const groupRef = useRef<THREE.Group>(null);
   const anchorRef = useRef<THREE.Group>(null);
 
@@ -143,7 +143,12 @@ function CameraSphereGizmo({
 
     groupRef.current.quaternion.copy(camera.quaternion);
 
-    const offset = new THREE.Vector3(2.6, -1.0, -5.8).applyQuaternion(camera.quaternion);
+    const isMobile = size.width <= 768;
+
+    const offset = isMobile
+      ? new THREE.Vector3(0, -1.9, -5.5).applyQuaternion(camera.quaternion)
+      : new THREE.Vector3(1.5, -2.0, -5.5).applyQuaternion(camera.quaternion);
+
     anchorRef.current.position.copy(camera.position).add(offset);
     anchorRef.current.quaternion.copy(camera.quaternion);
   });
@@ -225,7 +230,7 @@ function CameraSphereGizmo({
         <AxisLabel
           text="X"
           position={[0.9, 0, 0]}
-          color="#c2410c"
+          color="#ffffff"
           onClick={(e) => {
             e.stopPropagation();
             moveToAxis("x");
@@ -269,7 +274,7 @@ function CameraSphereGizmo({
         <AxisLabel
           text="Y"
           position={[0, 0.9, 0]}
-          color="#15803d"
+          color="#ffffff"
           onClick={(e) => {
             e.stopPropagation();
             moveToAxis("y");
@@ -314,7 +319,7 @@ function CameraSphereGizmo({
         <AxisLabel
           text="Z"
           position={[0, 0, 0.9]}
-          color="#1d4ed8"
+          color="#ffffff"
           onClick={(e) => {
             e.stopPropagation();
             moveToAxis("z");

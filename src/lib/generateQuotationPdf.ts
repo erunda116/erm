@@ -234,7 +234,7 @@ export async function generateQuotationPdf(data: QuotationData): Promise<void> {
   const cityName = safe(deliveryCity.displayName.split(',')[0]);
   const trucksLabel =
     deliveryTrucks && deliveryTrucks > 0
-      ? ` (trucks x ${deliveryTrucks})`
+      ? ` (${t('sideBarTrucks')} x ${deliveryTrucks})`
       : '';
 
   tableRows.push([

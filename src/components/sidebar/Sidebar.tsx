@@ -714,7 +714,7 @@ function DeliveryBlock({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
       <div style={{ fontSize: 10, color: '#000', fontWeight: 600, letterSpacing: 1 }}>
-        🚚 {t('delivery')}
+        {t('delivery')}
       </div>
 
       <div style={{ position: 'relative' }}>
@@ -825,16 +825,16 @@ function DeliveryBlock({
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10 }}>
-            <span style={{ color: '#000' }}>Distance</span>
+            <span style={{ color: '#000' }}>{t('sideBarDelivery')}</span>
             <span style={{ color: '#000', fontWeight: 600 }}>
               {deliveryDistanceKm} km
             </span>
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10 }}>
-            <span style={{ color: '#666' }}>🚚 Trucks</span>
+            <span style={{ color: '#666' }}>🚚 {t('sideBarTrucks')}</span>
             <span style={{ color: '#000', fontWeight: 600 }}>
-              {trucks}
+              x {trucks}
             </span>
           </div>
 
@@ -842,7 +842,7 @@ function DeliveryBlock({
 
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
             <span style={{ fontSize: 11, fontWeight: 700, color: '#000' }}>
-              Delivery
+              {t('sideBarDeliveryCost')}
             </span>
             <span style={{ fontSize: 13, fontWeight: 700, color: '#f39c12' }}>
               {Number.isFinite(deliveryCost) ? `${deliveryCost}€` : '0€'}

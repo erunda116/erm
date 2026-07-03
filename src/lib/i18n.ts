@@ -135,6 +135,10 @@ tooltip2dDes: '🖱 Wheel — zoom · Space+drag — pan · Click — add point 
 paintingRalTip: 'RAL color · white concrete price + painting cost',
 paintingRalGrey: 'RAL color · grey concrete price + painting cost',
 drawTheFenceToSee: 'Draw a fence to see the price',
+sideBarDelivery: 'Delivery',
+sideBarTrucks: 'Trucks',
+sideBarDeliveryCost: 'Delivery cost',
+segmentPreview: 'Fence segment preview',
   },
   pt: {
     title: 'Configurador Euromuro',
@@ -267,6 +271,10 @@ tooltip2dDes: '🖱 Roda do rato — ampliar · Espaço + arrastar — deslocar 
 paintingRalTip: 'Cor RAL · preço do betão branco + custo da pintura',
 paintingRalGrey: 'Cor RAL · preço do betão cinzento + custo da pintura',
 drawTheFenceToSee: 'Desenhe uma vedação para ver o preço',
+sideBarDelivery: 'Entrega',
+sideBarTrucks: 'Camiões',
+sideBarDeliveryCost: 'Custo de entrega',
+segmentPreview: 'Pré-visualização do segmento de vedação',
   },
   es: {
     title: 'Configurador Euromuro',
@@ -399,6 +407,10 @@ tooltip2dDes: '🖱 Rueda del ratón para ampliar · Espacio + arrastrar para de
 paintingRalTip: 'Color RAL · precio del hormigón blanco + coste de pintura',
 paintingRalGrey: 'Color RAL · precio del hormigón gris + coste de pintura',
 drawTheFenceToSee: 'Dibuja una valla para ver el precio',
+sideBarDelivery: 'Entrega',
+sideBarTrucks: 'Camiones',
+sideBarDeliveryCost: 'Coste de envío',
+segmentPreview: 'Vista previa del segmento de valla',
   },
 } as const;
 

@@ -138,7 +138,7 @@ async function drawSegmentBody(
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(13);
   doc.setTextColor(BRAND_RED);
-  doc.text('Fence segment preview', margin, titleY);
+  doc.text( t('segmentPreview'), margin, titleY);
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
