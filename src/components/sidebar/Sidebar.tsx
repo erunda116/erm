@@ -47,13 +47,19 @@ const deliveryDistanceKm = useDesignerStore((s) => s.deliveryDistanceKm);
 const setDeliveryCity = useDesignerStore((s) => s.setDeliveryCity);
  
 
-  const price = calcPrice(fenceItems, rows, activePillar, baseConcreteColor);
+  const price = calcPrice(
+  fenceItems,
+  rows,
+  activePillar,
+  baseConcreteColor,
+  selectedRal
+);
   const { totalLengthM, totalWeightKg } = price;
   const hasItems = fenceItems.length > 0;
   const rowsPopupOpen = useDesignerStore((s) => s.rowsPopupOpen);
 const setRowsPopupOpen = useDesignerStore((s) => s.setRowsPopupOpen);
 const concreteColor = selectedRal ?? baseConcreteColor;
-
+const selectedRalItem = RAL_COLORS.find((ral) => ral.hex === selectedRal);
   return (
    <div className="config-sidebar">
 
@@ -123,7 +129,7 @@ const concreteColor = selectedRal ?? baseConcreteColor;
                 {t('outward')}
               </ToggleBtn>
             </div>
-            <div style={{ fontSize: 10, color: "#fff" }}>
+            <div style={{ fontSize: 10, color: "#000" }}>
               {panelOrientation === 'outward' ? t('textureFacingInside') : t('textureFacingOutside')}
             </div>
           </Section>
@@ -162,7 +168,7 @@ const concreteColor = selectedRal ?? baseConcreteColor;
   <div id="tour-step4">
     <div style={{ display: "flex", gap: 6 }}>
       <ConcreteBtn
-  hex="#000000"
+  hex="#a1a1a1"
   label="Grey"
   active={baseConcreteColor === 'grey' && selectedRal === null}
   onClick={() => {
@@ -182,6 +188,9 @@ const concreteColor = selectedRal ?? baseConcreteColor;
   small
 />
     </div>
+    <div style={{ marginTop: 6, fontSize: 9, color: "#000" }}>
+      {t('paintingRalAdditional')}
+    </div>
 
     <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop:5, }}>
       {RAL_COLORS.map((ral) => (
@@ -197,7 +206,7 @@ const concreteColor = selectedRal ?? baseConcreteColor;
     </div>
   </div>
 
- <div style={{ fontSize: 10, color: "#000" }}>
+ <div style={{ fontSize: 8, color: "#000" }}>
   {selectedRal
     ? baseConcreteColor === 'white'
       ? t('paintingRalTip')
@@ -221,6 +230,7 @@ const concreteColor = selectedRal ?? baseConcreteColor;
   fenceHeightCm,
   baseConcreteColor,
   selectedRal: selectedRal ?? undefined,
+  selectedRalLabel: selectedRalItem?.label ?? undefined,
   panelOrientation,
   deliveryCity,
   deliveryDistanceKm,
@@ -610,6 +620,14 @@ function PriceBlock({ price, pillar, totalLengthM, totalWeightKg, isWhite }: {
         <span style={{ color: "#000" }}>Pillars ×{price.postCount}</span>
         <span style={{ color: "#000" }}>{price.postTotal}€</span>
       </div>
+      {price.paintingTotal > 0 && (
+  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11 }}>
+    <span style={{ color: "#000" }}>
+      {t('paintingService')} ({price.paintedAreaM2} m²)
+    </span>
+    <span style={{ color: "#000" }}>{price.paintingTotal}€</span>
+  </div>
+)}
       <div style={{ height: 1, background: "#333" }} />
       <div style={{ display: "flex", gap: 4 }}>
         <div style={{ flex: 1, background: "#fff", borderRadius: 4, padding: "4px 6px", border: '1px solid #000' }}>
@@ -916,17 +934,19 @@ function dropdownItemStyle(selected: boolean, isLast: boolean): React.CSSPropert
 }
 
 const RAL_COLORS = [
-  { hex: "#F4A460", label: "RAL 1001" },
-  { hex: "#F5C518", label: "RAL 1021" },
-  { hex: "#E8751A", label: "RAL 2004" },
-  { hex: "#C0392B", label: "RAL 3020" },
-  { hex: "#8B1A1A", label: "RAL 3005" },
-  { hex: "#4A90A4", label: "RAL 5024" },
-  { hex: "#1B4F8A", label: "RAL 5010" },
-  { hex: "#2E7D32", label: "RAL 6002" },
-  { hex: "#5D4037", label: "RAL 8011" },
-  { hex: "#37474F", label: "RAL 7016" },
-  { hex: "#263238", label: "RAL 9005" },
+  { hex: "#E3C000", label: "RAL 1018" },
+  { hex: "#ED760E", label: "RAL 2003" },
+  { hex: "#BF3922", label: "RAL 2002" },
+  { hex: "#2271B3", label: "RAL 5015" },
+  { hex: "#81C0BB", label: "RAL 6027" },
+  { hex: "#48A43F", label: "RAL 6018" },
+  { hex: "#308446", label: "RAL 6027" },
+  { hex: "#AF8A54", label: "RAL 1011" },
+  { hex: "#A65E2F", label: "RAL 8023" },
+  { hex: "#1E1E24", label: "RAL 9017" },
+  { hex: "#844C82", label: "RAL 4006" },
+  { hex: "#DE4C8A", label: "RAL 4003" },
+  { hex: "#E9E0D2", label: "RAL 9001" },
 ];
 
 function ConcreteBtn({ hex, label, active, onClick, small = false }: {

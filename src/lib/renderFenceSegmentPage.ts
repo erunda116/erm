@@ -15,6 +15,8 @@ type FenceSegmentPageData = {
   pillar: PillarModel;
   rows: FenceRow[];
   fenceHeightCm: number;
+  baseConcreteColor: 'grey' | 'white';
+  selectedRal?: string;
   locale?: Locale;
 };
 
@@ -24,6 +26,8 @@ export async function renderFenceSegmentPage({
   pillar,
   rows,
   fenceHeightCm,
+  baseConcreteColor,
+  selectedRal,
   locale = 'en',
 }: FenceSegmentPageData): Promise<void> {
   doc.addPage();
@@ -36,7 +40,7 @@ export async function renderFenceSegmentPage({
     translations[locale]?.[key] ?? translations.en?.[key] ?? key;
 
   await drawHeader(doc, pageW, margin, t);
-  await drawSegmentBody(doc, {
+    await drawSegmentBody(doc, {
     pageW,
     pageH,
     margin,
@@ -45,6 +49,8 @@ export async function renderFenceSegmentPage({
     rows,
     fenceHeightCm,
     locale,
+    baseConcreteColor,
+    selectedRal,
   });
   drawFooter(doc, pageW, pageH, margin, t);
 }
@@ -119,6 +125,8 @@ async function drawSegmentBody(
     rows,
     fenceHeightCm,
     locale,
+    baseConcreteColor,
+    selectedRal,
   }: {
     pageW: number;
     pageH: number;
@@ -128,10 +136,13 @@ async function drawSegmentBody(
     rows: FenceRow[];
     fenceHeightCm: number;
     locale: Locale;
+    baseConcreteColor: 'grey' | 'white';
+    selectedRal?: string;
   }
 ): Promise<void> {
   const t = (key: TranslationKey): string =>
     translations[locale]?.[key] ?? translations.en?.[key] ?? key;
+    const tint = getConcreteTint(baseConcreteColor, selectedRal);
 
   const titleY = 48;
 
@@ -200,6 +211,7 @@ async function drawSegmentBody(
     pillarW,
     pillarH
   );
+    paintRect(doc, leftPillarX, leftPillarY, pillarW, pillarH, tint);
 
   doc.addImage(
     pillarImg,
@@ -209,6 +221,7 @@ async function drawSegmentBody(
     pillarW,
     pillarH
   );
+    paintRect(doc, rightPillarX, rightPillarY, pillarW, pillarH, tint);
 
   let currentBottom = segmentBottomY;
 
@@ -226,6 +239,7 @@ async function drawSegmentBody(
       panelW,
       rowH
     );
+        paintRect(doc, panelX, currentBottom - rowH, panelW, rowH, tint);
 
     currentBottom -= rowH;
   }
@@ -310,6 +324,58 @@ function getPanelImagePath(row: FenceRow): string {
   const id = row.panel.id.toLowerCase();
   const h = row.heightCm;
   return `/pdf-segment/panels/${id}-${h}.png`;
+}
+
+function hexToRgb(hex: string): { r: number; g: number; b: number } {
+  const normalized = hex.replace('#', '');
+  const full =
+    normalized.length === 3
+      ? normalized.split('').map((c) => c + c).join('')
+      : normalized;
+
+  const num = parseInt(full, 16);
+
+  return {
+    r: (num >> 16) & 255,
+    g: (num >> 8) & 255,
+    b: num & 255,
+  };
+}
+
+function getConcreteTint(
+  baseConcreteColor: 'grey' | 'white',
+  selectedRal?: string
+): { r: number; g: number; b: number; opacity: number } {
+  if (selectedRal) {
+    const { r, g, b } = hexToRgb(selectedRal);
+    return { r, g, b, opacity: 0.66 };
+  }
+
+  if (baseConcreteColor === 'white') {
+    return { r: 245, g: 242, b: 236, opacity: 0.22 };
+  }
+
+  return { r: 120, g: 120, b: 120, opacity: 0.18 };
+}
+
+function paintRect(
+  doc: jsPDF,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  fill: { r: number; g: number; b: number; opacity: number }
+) {
+  doc.saveGraphicsState();
+
+  if ((doc as any).setGState && (doc as any).GState) {
+    (doc as any).setGState(new (doc as any).GState({ opacity: fill.opacity }));
+  }
+
+  doc.setFillColor(fill.r, fill.g, fill.b);
+  doc.rect(x, y, w, h, 'F');
+
+  doc.restoreGraphicsState();
 }
 
 function getImageFormatFromPath(path: string): 'PNG' | 'JPEG' {

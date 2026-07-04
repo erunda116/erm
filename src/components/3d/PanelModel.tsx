@@ -8,7 +8,18 @@ type Props = {
   position?: [number, number, number];
   rotation?: [number, number, number];
   widthRatio?: number;
-  side?: 'one' | 'double';
+  side?: "one" | "double";
+
+  ralControls?: {
+    hue?: number;
+    saturation?: number;
+    lightness?: number;
+    opacity?: number;
+    emissiveIntensity?: number;
+    emissiveBoost?: number;
+    metalness?: number;
+    roughness?: number;
+  };
 };
 
 export default function PanelModel({
@@ -16,20 +27,31 @@ export default function PanelModel({
   position = [0, 0, 0],
   rotation = [0, 0, 0],
   widthRatio = 1,
-  side = 'one',
+  side = "one",
+  ralControls = {},
 }: Props) {
   const model = useGLTF(modelPath);
   const panelOrientation = useDesignerStore((s) => s.panelOrientation);
- const baseConcreteColor = useDesignerStore((s) => s.baseConcreteColor);
-const selectedRal = useDesignerStore((s) => s.selectedRal);
-const concreteColor = selectedRal ?? baseConcreteColor;
+  const baseConcreteColor = useDesignerStore((s) => s.baseConcreteColor);
+  const selectedRal = useDesignerStore((s) => s.selectedRal);
+  const concreteColor = selectedRal ?? baseConcreteColor;
+
   const groupRef = useRef<THREE.Group>(null);
 
-  const scaleZ = side === 'double' ? 1 : (panelOrientation === 'inward' ? -1 : 1);
+  const scaleZ = side === "double" ? 1 : panelOrientation === "inward" ? -1 : 1;
   const needsClip = widthRatio < 0.999;
 
-  // GLB панель от X=-1 до X=+1 (2м, центр 0)
-  // Правый край обрезки: -1 + widthRatio*2
+  const {
+    hue = 1,
+    saturation = 0.8,
+    lightness = 1,
+    opacity = 1,
+    emissiveIntensity = 1,
+    emissiveBoost = 0.2,
+    metalness = 0.05,
+    roughness = 0.9,
+  } = ralControls;
+
   const localPlane = useMemo(() => {
     if (!needsClip) return null;
     const rightEdge = -1.0 + widthRatio * 2.0;
@@ -40,41 +62,75 @@ const concreteColor = selectedRal ?? baseConcreteColor;
     const clone = model.scene.clone(true);
 
     clone.traverse((obj) => {
-      if ((obj as THREE.Mesh).isMesh) {
-        const mesh = obj as THREE.Mesh;
-        const mat = (mesh.material as THREE.MeshStandardMaterial).clone();
+      if (!(obj as THREE.Mesh).isMesh) return;
 
-        if (concreteColor !== 'grey') {
-          if (concreteColor === 'white') {
-            mat.color = new THREE.Color('#ffffff');
-            mat.emissive = new THREE.Color('#888888');
-            mat.emissiveIntensity = 0.8;
-          } else {
-            const c = new THREE.Color(concreteColor);
-            mat.color = c;
-            mat.emissive = c.clone().multiplyScalar(0.3);
-            mat.emissiveIntensity = 0.4;
-          }
-        }
+      const mesh = obj as THREE.Mesh;
+      const sourceMaterial = mesh.material as THREE.MeshStandardMaterial;
+      const mat = sourceMaterial.clone();
 
-        if (localPlane) {
-          const worldPlane = localPlane.clone();
-          mat.clippingPlanes = [worldPlane];
-          mat.clipShadows = true;
-          mesh.onBeforeRender = () => {
-            if (groupRef.current) {
-              worldPlane.copy(localPlane).applyMatrix4(groupRef.current.matrixWorld);
-            }
-          };
-        }
+      if (concreteColor === "white") {
+        mat.color = new THREE.Color("#ffffff");
+        mat.emissive = new THREE.Color("#888888");
+        mat.emissiveIntensity = 0.8;
+        mat.transparent = false;
+        mat.opacity = 1;
+      } else if (concreteColor !== "grey") {
+        const base = new THREE.Color(concreteColor);
+        const hsl = { h: 0, s: 0, l: 0 };
 
-        mat.needsUpdate = true;
-        mesh.material = mat;
+        base.getHSL(hsl);
+
+        const nextH = (hsl.h + hue) % 1;
+        const nextS = THREE.MathUtils.clamp(hsl.s * saturation, 0, 1);
+        const nextL = THREE.MathUtils.clamp(hsl.l * lightness, 0, 1);
+
+        const finalColor = new THREE.Color().setHSL(
+          nextH < 0 ? nextH + 1 : nextH,
+          nextS,
+          nextL
+        );
+
+        mat.color = finalColor;
+        mat.emissive = finalColor.clone().multiplyScalar(emissiveBoost);
+        mat.emissiveIntensity = emissiveIntensity;
+
+        mat.transparent = opacity < 1;
+        mat.opacity = THREE.MathUtils.clamp(opacity, 0, 1);
+
+        mat.metalness = metalness;
+        mat.roughness = roughness;
       }
+
+      if (localPlane) {
+        const worldPlane = localPlane.clone();
+        mat.clippingPlanes = [worldPlane];
+        mat.clipShadows = true;
+
+        mesh.onBeforeRender = () => {
+          if (groupRef.current) {
+            worldPlane.copy(localPlane).applyMatrix4(groupRef.current.matrixWorld);
+          }
+        };
+      }
+
+      mat.needsUpdate = true;
+      mesh.material = mat;
     });
 
     return clone;
-  }, [model, concreteColor, localPlane]);
+  }, [
+    model,
+    concreteColor,
+    localPlane,
+    hue,
+    saturation,
+    lightness,
+    opacity,
+    emissiveIntensity,
+    emissiveBoost,
+    metalness,
+    roughness,
+  ]);
 
   return (
     <group ref={groupRef} position={position} rotation={rotation}>

@@ -28,6 +28,7 @@ type QuotationData = {
   deliveryCost?: number;
   locale?: Locale;
   selectedRal?: string;
+  selectedRalLabel?: string; // новый label для RAL
 };
 
 export async function generateQuotationPdf(data: QuotationData): Promise<void> {
@@ -44,6 +45,8 @@ export async function generateQuotationPdf(data: QuotationData): Promise<void> {
     deliveryTrucks,
     deliveryCost,
     locale = 'en',
+    selectedRal,
+    selectedRalLabel,
   } = data;
 
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
@@ -157,12 +160,19 @@ export async function generateQuotationPdf(data: QuotationData): Promise<void> {
   doc.text(expiryStr, pageW - margin - doc.getTextWidth(expiryStr), headerY + 9);
 
   const customY = headerY + 14;
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8.5);
-  doc.setTextColor(80, 80, 80);
-  drawWrappedText(t('quotationCustomText'), margin, customY, pageW - margin * 2);
+doc.setFont('helvetica', 'normal');
+doc.setFontSize(8.5);
+doc.setTextColor(80, 80, 80);
 
-  const configY = customY + 10;
+const customLines = drawWrappedText(
+  t('quotationCustomText'),
+  margin,
+  customY,
+  pageW - margin * 2
+);
+
+const lineHeight = 4.2;
+const configY = customY + customLines * lineHeight + 6;
   doc.setFillColor(LIGHT_GRAY);
   doc.roundedRect(margin, configY, pageW - margin * 2, 20, 2, 2, 'F');
 
@@ -172,12 +182,11 @@ export async function generateQuotationPdf(data: QuotationData): Promise<void> {
   doc.text(t('quotationFenceConfig'), margin + 4, configY + 6);
 
   const heightLabel = `${fenceHeightCm} cm`;
-  const colorLabel =
-    baseConcreteColor === 'grey'
-      ? t('quotationColorGrey')
-      : baseConcreteColor === 'white'
-      ? t('quotationColorWhite')
-      : `RAL (${baseConcreteColor})`;
+  const colorLabel = selectedRalLabel
+    ? `${selectedRalLabel} (${baseConcreteColor === 'white' ? t('quotationColorWhite') : t('quotationColorGrey')} + painting)`
+    : baseConcreteColor === 'grey'
+    ? t('quotationColorGrey')
+    : t('quotationColorWhite');
 
   const configCols = [
     { label: safe(t('quotationHeight')), value: safe(heightLabel) },
@@ -230,21 +239,41 @@ export async function generateQuotationPdf(data: QuotationData): Promise<void> {
     `${safe(price.postTotal)} €`,
   ]);
 
-  if (deliveryCity && deliveryCost) {
-  const cityName = safe(deliveryCity.displayName.split(',')[0]);
-  const trucksLabel =
-    deliveryTrucks && deliveryTrucks > 0
-      ? ` (${t('sideBarTrucks')} x ${deliveryTrucks})`
-      : '';
+  // >>> здесь только логика скобок изменена: RAL label вместо hex
+  if (price.paintingTotal > 0) {
+    const paintingRate = price.paintedAreaM2 > 0
+      ? Math.round((price.paintingTotal / price.paintedAreaM2) * 100) / 100
+      : 0;
 
-  tableRows.push([
-    `${t('quotationDeliveryLabel')} — ${cityName}${trucksLabel}`,
-    1,
-    `${safe(deliveryCost)} €`,
-    '23%',
-    `${safe(deliveryCost)} €`,
-  ]);
-}
+    const paintingLabel = selectedRalLabel
+      ? `${t('paintingService')} (${selectedRalLabel})`
+      : `${t('paintingService')}`;
+
+    tableRows.push([
+      paintingLabel,
+      `${safe(price.paintedAreaM2)} m²`,
+      `${safe(paintingRate)} €/m²`,
+      '23%',
+      `${safe(price.paintingTotal)} €`,
+    ]);
+  }
+  // <<< конец изменения
+
+  if (deliveryCity && deliveryCost) {
+    const cityName = safe(deliveryCity.displayName.split(',')[0]);
+    const trucksLabel =
+      deliveryTrucks && deliveryTrucks > 0
+        ? ` (${t('sideBarTrucks')} x ${deliveryTrucks})`
+        : '';
+
+    tableRows.push([
+      `${t('quotationDeliveryLabel')} — ${cityName}${trucksLabel}`,
+      1,
+      `${safe(deliveryCost)} €`,
+      '23%',
+      `${safe(deliveryCost)} €`,
+    ]);
+  }
 
   autoTable(doc, {
     startY: configY + 24,
@@ -278,7 +307,9 @@ export async function generateQuotationPdf(data: QuotationData): Promise<void> {
   const afterTable = (doc as any).lastAutoTable.finalY + 6;
 
   const deliveryTotal = deliveryCity && deliveryCost ? deliveryCost : 0;
-  const subtotal = Math.round((price.panelTotal + price.postTotal + deliveryTotal) * 100) / 100;
+  const subtotal = Math.round(
+    (price.panelTotal + price.postTotal + price.paintingTotal + deliveryTotal) * 100
+  ) / 100;
   const taxAmount = Math.round(subtotal * TAX_RATE * 100) / 100;
   const grandTotal = Math.round((subtotal + taxAmount) * 100) / 100;
 
@@ -342,7 +373,7 @@ export async function generateQuotationPdf(data: QuotationData): Promise<void> {
 
   const termsUrl = 'https://euromuro.odoo.com/terms';
   doc.setTextColor(BRAND_RED);
-  doc.textWithLink(termsUrl, margin + 30, termsY, { url: termsUrl });
+  doc.textWithLink(termsUrl, margin + 40, termsY, { url: termsUrl });
 
   doc.setDrawColor(MID_GRAY);
   doc.setLineWidth(0.3);
@@ -390,14 +421,18 @@ export async function generateQuotationPdf(data: QuotationData): Promise<void> {
   doc.setFontSize(7.5);
   const pageNumTw = doc.getTextWidth(pageLabel);
   doc.text(pageLabel, pageW - margin - pageNumTw, footerY);
+
   await renderFenceSegmentPage({
-  doc,
-  price,
-  pillar,
-  rows,
-  fenceHeightCm,
-  locale,
-});
+    doc,
+    price,
+    pillar,
+    rows,
+    fenceHeightCm,
+    baseConcreteColor,
+    selectedRal,
+    locale,
+  });
+
   doc.save(`EuroMuro_Quotation_${quoteNum}.pdf`);
 }
 
