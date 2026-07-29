@@ -360,7 +360,7 @@ export default function Scene() {
       <Environment preset="park" background={false} />
 
       {/* 2. Hemisphere light to simulate sky and ground bounce light */}
-      <hemisphereLight skyColor="#ffffff" groundColor="#444444" intensity={0.6} />
+      <hemisphereLight args={['#ffffff', '#444444', 0.6]} />
 
       {/* 3. Main sun with optimized shadow properties */}
       <directionalLight
