@@ -76,7 +76,11 @@ export default function PillarModel({
         mat.emissiveIntensity = 0.9;
         mat.transparent = false;
         mat.opacity = 1;
-      } else if (concreteColor !== "grey") {
+      } else if (concreteColor === "grey") {
+        // --- ДЕЛАЕМ СЕРЫЙ ТЕМНЕЕ ---
+        mat.color = new THREE.Color("#c0c0c0");
+      } else {
+        // Выполняется, если выбран RAL
         const base = new THREE.Color(concreteColor);
         const hsl = { h: 0, s: 0, l: 0 };
 
@@ -95,10 +99,8 @@ export default function PillarModel({
         mat.color = finalColor;
         mat.emissive = finalColor.clone().multiplyScalar(emissiveBoost);
         mat.emissiveIntensity = emissiveIntensity;
-
         mat.transparent = opacity < 1;
         mat.opacity = THREE.MathUtils.clamp(opacity, 0, 1);
-
         mat.metalness = metalness;
         mat.roughness = roughness;
       }
@@ -122,14 +124,18 @@ export default function PillarModel({
     roughness,
   ]);
 
-  const scaleZ = panelOrientation === "inward" ? -1 : 1;
+  const modelRotationY =
+    panelOrientation === "inward" ? Math.PI : 0;
 
   return (
     <group
       position={[position[0], position[1] - burialM, position[2]]}
       rotation={rotation}
     >
-      <primitive object={clonedScene} scale={[1, 1, scaleZ]} />
+      <primitive
+        object={clonedScene}
+        rotation={[0, modelRotationY, 0]}
+      />
     </group>
   );
 }

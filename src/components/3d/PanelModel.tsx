@@ -31,6 +31,7 @@ export default function PanelModel({
   ralControls = {},
 }: Props) {
   const model = useGLTF(modelPath);
+
   const panelOrientation = useDesignerStore((s) => s.panelOrientation);
   const baseConcreteColor = useDesignerStore((s) => s.baseConcreteColor);
   const selectedRal = useDesignerStore((s) => s.selectedRal);
@@ -38,7 +39,6 @@ export default function PanelModel({
 
   const groupRef = useRef<THREE.Group>(null);
 
-  const scaleZ = side === "double" ? 1 : panelOrientation === "inward" ? -1 : 1;
   const needsClip = widthRatio < 0.999;
 
   const {
@@ -54,8 +54,13 @@ export default function PanelModel({
 
   const localPlane = useMemo(() => {
     if (!needsClip) return null;
+
     const rightEdge = -1.0 + widthRatio * 2.0;
-    return new THREE.Plane(new THREE.Vector3(-1, 0, 0), rightEdge);
+
+    return new THREE.Plane(
+      new THREE.Vector3(-1, 0, 0),
+      rightEdge
+    );
   }, [widthRatio, needsClip]);
 
   const clonedScene = useMemo(() => {
@@ -74,15 +79,28 @@ export default function PanelModel({
         mat.emissiveIntensity = 0.8;
         mat.transparent = false;
         mat.opacity = 1;
-      } else if (concreteColor !== "grey") {
+      } else if (concreteColor === "grey") {
+        // --- ДЕЛАЕМ СЕРЫЙ ТЕМНЕЕ ---
+        // Если #a3a3a3 будет слишком светлым, попробуйте #8a8a8a или #7a7a7a
+        mat.color = new THREE.Color("#c0c0c0"); 
+      } else {
+        // Выполняется, если выбран RAL
         const base = new THREE.Color(concreteColor);
         const hsl = { h: 0, s: 0, l: 0 };
 
         base.getHSL(hsl);
 
         const nextH = (hsl.h + hue) % 1;
-        const nextS = THREE.MathUtils.clamp(hsl.s * saturation, 0, 1);
-        const nextL = THREE.MathUtils.clamp(hsl.l * lightness, 0, 1);
+        const nextS = THREE.MathUtils.clamp(
+          hsl.s * saturation,
+          0,
+          1
+        );
+        const nextL = THREE.MathUtils.clamp(
+          hsl.l * lightness,
+          0,
+          1
+        );
 
         const finalColor = new THREE.Color().setHSL(
           nextH < 0 ? nextH + 1 : nextH,
@@ -93,22 +111,23 @@ export default function PanelModel({
         mat.color = finalColor;
         mat.emissive = finalColor.clone().multiplyScalar(emissiveBoost);
         mat.emissiveIntensity = emissiveIntensity;
-
         mat.transparent = opacity < 1;
         mat.opacity = THREE.MathUtils.clamp(opacity, 0, 1);
-
         mat.metalness = metalness;
         mat.roughness = roughness;
       }
 
       if (localPlane) {
         const worldPlane = localPlane.clone();
+
         mat.clippingPlanes = [worldPlane];
         mat.clipShadows = true;
 
         mesh.onBeforeRender = () => {
           if (groupRef.current) {
-            worldPlane.copy(localPlane).applyMatrix4(groupRef.current.matrixWorld);
+            worldPlane
+              .copy(localPlane)
+              .applyMatrix4(groupRef.current.matrixWorld);
           }
         };
       }
@@ -132,9 +151,17 @@ export default function PanelModel({
     roughness,
   ]);
 
+  const panelRotationY =
+  side === "double" || panelOrientation === "outward"
+    ? 0
+    : Math.PI;
+
   return (
     <group ref={groupRef} position={position} rotation={rotation}>
-      <primitive object={clonedScene} scale={[1, 1, scaleZ]} />
+      <primitive
+        object={clonedScene}
+        rotation={[0, panelRotationY, 0]}
+      />
     </group>
   );
 }

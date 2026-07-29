@@ -28,7 +28,8 @@ type QuotationData = {
   deliveryCost?: number;
   locale?: Locale;
   selectedRal?: string;
-  selectedRalLabel?: string; // новый label для RAL
+  selectedRalLabel?: string;
+  layoutImageBase64?: string;
 };
 
 export async function generateQuotationPdf(data: QuotationData): Promise<void> {
@@ -47,6 +48,7 @@ export async function generateQuotationPdf(data: QuotationData): Promise<void> {
     locale = 'en',
     selectedRal,
     selectedRalLabel,
+    layoutImageBase64,
   } = data;
 
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
@@ -160,19 +162,19 @@ export async function generateQuotationPdf(data: QuotationData): Promise<void> {
   doc.text(expiryStr, pageW - margin - doc.getTextWidth(expiryStr), headerY + 9);
 
   const customY = headerY + 14;
-doc.setFont('helvetica', 'normal');
-doc.setFontSize(8.5);
-doc.setTextColor(80, 80, 80);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8.5);
+  doc.setTextColor(80, 80, 80);
 
-const customLines = drawWrappedText(
-  t('quotationCustomText'),
-  margin,
-  customY,
-  pageW - margin * 2
-);
+  const customLines = drawWrappedText(
+    t('quotationCustomText'),
+    margin,
+    customY,
+    pageW - margin * 2
+  );
 
-const lineHeight = 4.2;
-const configY = customY + customLines * lineHeight + 6;
+  const lineHeight = 4.2;
+  const configY = customY + customLines * lineHeight + 6;
   doc.setFillColor(LIGHT_GRAY);
   doc.roundedRect(margin, configY, pageW - margin * 2, 20, 2, 2, 'F');
 
@@ -182,13 +184,16 @@ const configY = customY + customLines * lineHeight + 6;
   doc.text(t('quotationFenceConfig'), margin + 4, configY + 6);
 
   const heightLabel = `${fenceHeightCm} cm`;
+  const lengthLabel = `${price.totalLengthM} m`; // Added length calculation
   const colorLabel = selectedRalLabel
     ? `${selectedRalLabel} (${baseConcreteColor === 'white' ? t('quotationColorWhite') : t('quotationColorGrey')} + painting)`
     : baseConcreteColor === 'grey'
     ? t('quotationColorGrey')
     : t('quotationColorWhite');
 
+  // Included Length in the configuration display
   const configCols = [
+    { label: safe(t('quotationLength')), value: safe(lengthLabel) },
     { label: safe(t('quotationHeight')), value: safe(heightLabel) },
     { label: safe(t('quotationColor')), value: safe(colorLabel) },
     { label: safe(t('quotationTextureSide')), value: safe(textureSideLabel) },
@@ -239,7 +244,6 @@ const configY = customY + customLines * lineHeight + 6;
     `${safe(price.postTotal)} €`,
   ]);
 
-  // >>> здесь только логика скобок изменена: RAL label вместо hex
   if (price.paintingTotal > 0) {
     const paintingRate = price.paintedAreaM2 > 0
       ? Math.round((price.paintingTotal / price.paintedAreaM2) * 100) / 100
@@ -257,7 +261,6 @@ const configY = customY + customLines * lineHeight + 6;
       `${safe(price.paintingTotal)} €`,
     ]);
   }
-  // <<< конец изменения
 
   if (deliveryCity && deliveryCost) {
     const cityName = safe(deliveryCity.displayName.split(',')[0]);
@@ -277,7 +280,7 @@ const configY = customY + customLines * lineHeight + 6;
 
   autoTable(doc, {
     startY: configY + 24,
-    head: [[t('quotationPanels'), t('quotationUnitQty'), t('quotationUnitPrice'), t('quotationTaxShort'), t('quotationTotal')]],
+    head: [[t('quotationItems'), t('quotationUnitQty'), t('quotationUnitPrice'), t('quotationTaxShort'), t('quotationTotal')]],
     body: tableRows,
     margin: { left: margin, right: margin },
     styles: {
@@ -304,7 +307,27 @@ const configY = customY + customLines * lineHeight + 6;
     },
   });
 
-  const afterTable = (doc as any).lastAutoTable.finalY + 6;
+  // Changed to `let` so we can adjust it if delivery disclaimer is added
+  let afterTable = (doc as any).lastAutoTable.finalY + 6;
+
+  // New logic: Check for delivery and add the disclaimer
+  if (deliveryCity && deliveryCost) {
+    doc.setFont('helvetica', 'italic');
+    doc.setFontSize(8);
+    doc.setTextColor(BRAND_RED);
+    
+    // Uses the new translation key with a fallback just in case it isn't in i18n yet
+    const translationKeyRaw = t('quotationAutoDeliveryWarning' as TranslationKey);
+    const warningText = `* ${translationKeyRaw === 'quotationAutoDeliveryWarning' 
+      ? t('quotationDeliveryAdditional')
+      : translationKeyRaw}`;
+      
+    const lines = doc.splitTextToSize(warningText, pageW - margin * 2);
+    doc.text(lines, margin, afterTable + 2);
+    
+    // Push the total block down based on how many lines the disclaimer took
+    afterTable += (lines.length * 4) + 4; 
+  }
 
   const deliveryTotal = deliveryCity && deliveryCost ? deliveryCost : 0;
   const subtotal = Math.round(
@@ -431,6 +454,7 @@ const configY = customY + customLines * lineHeight + 6;
     baseConcreteColor,
     selectedRal,
     locale,
+    layoutImageBase64,
   });
 
   doc.save(`EuroMuro_Quotation_${quoteNum}.pdf`);

@@ -18,6 +18,7 @@ type FenceSegmentPageData = {
   baseConcreteColor: 'grey' | 'white';
   selectedRal?: string;
   locale?: Locale;
+  layoutImageBase64?: string;
 };
 
 export async function renderFenceSegmentPage({
@@ -29,6 +30,7 @@ export async function renderFenceSegmentPage({
   baseConcreteColor,
   selectedRal,
   locale = 'en',
+  layoutImageBase64,
 }: FenceSegmentPageData): Promise<void> {
   doc.addPage();
 
@@ -40,7 +42,7 @@ export async function renderFenceSegmentPage({
     translations[locale]?.[key] ?? translations.en?.[key] ?? key;
 
   await drawHeader(doc, pageW, margin, t);
-    await drawSegmentBody(doc, {
+  await drawSegmentBody(doc, {
     pageW,
     pageH,
     margin,
@@ -51,6 +53,7 @@ export async function renderFenceSegmentPage({
     locale,
     baseConcreteColor,
     selectedRal,
+    layoutImageBase64,
   });
   drawFooter(doc, pageW, pageH, margin, t);
 }
@@ -74,14 +77,7 @@ async function drawHeader(
     logoW = imgProps.width * ratio;
     logoH = imgProps.height * ratio;
 
-    doc.addImage(
-      logoBase64,
-      imgProps.fileType || 'JPEG',
-      margin,
-      10,
-      logoW,
-      logoH
-    );
+    doc.addImage(logoBase64, imgProps.fileType || 'JPEG', margin, 10, logoW, logoH);
   } catch {
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(16);
@@ -127,6 +123,7 @@ async function drawSegmentBody(
     locale,
     baseConcreteColor,
     selectedRal,
+    layoutImageBase64,
   }: {
     pageW: number;
     pageH: number;
@@ -138,18 +135,20 @@ async function drawSegmentBody(
     locale: Locale;
     baseConcreteColor: 'grey' | 'white';
     selectedRal?: string;
+    layoutImageBase64?: string;
   }
 ): Promise<void> {
   const t = (key: TranslationKey): string =>
     translations[locale]?.[key] ?? translations.en?.[key] ?? key;
-    const tint = getConcreteTint(baseConcreteColor, selectedRal);
+  const tint = getConcreteTint(baseConcreteColor, selectedRal);
 
-  const titleY = 48;
+  // --- Заголовок Сегмента ---
+  const titleY = 44;
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(13);
   doc.setTextColor(BRAND_RED);
-  doc.text( t('segmentPreview'), margin, titleY);
+  doc.text(t('segmentPreview'), margin, titleY);
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
@@ -163,95 +162,115 @@ async function drawSegmentBody(
   doc.setTextColor(BRAND_RED);
   doc.text(`x ${segmentCount}`, pageW - margin, titleY + 2, { align: 'right' });
 
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(9);
-  doc.setTextColor(100, 100, 100);
-  doc.text(`${price.totalLengthM} m total`, pageW - margin, titleY + 8, {
-    align: 'right',
-  });
-
-  const boxY = 64;
-  const boxH = 160;
-  const boxW = pageW - margin * 2;
+  // --- Узкая рамка Сегмента (центрируем) ---
+  const segmentBoxW = 130; // Делаем уже! (макс. ширина 174)
+  const segmentBoxX = (pageW - segmentBoxW) / 2; // Центрируем по горизонтали
+  const boxY = 56;
+  const boxH = 95; 
 
   doc.setFillColor(LIGHT_GRAY);
-  doc.roundedRect(margin, boxY, boxW, boxH, 3, 3, 'F');
+  doc.roundedRect(segmentBoxX, boxY, segmentBoxW, boxH, 3, 3, 'F');
 
   const totalCm = Math.max(
     rows.reduce((sum, row) => sum + row.heightCm, 0),
     1
   );
 
-  const segmentBottomY = boxY + boxH - 18;
-  const panelTotalH = Math.min(120, (fenceHeightCm / 200) * 120);
+  const segmentBottomY = boxY + boxH - 12;
+  const panelTotalH = Math.min(75, (fenceHeightCm / 200) * 75); 
 
   const pillarPath = getPillarImagePath(pillar);
   const pillarImg = await imageUrlToBase64(pillarPath);
   const pillarFormat = getImageFormatFromPath(pillarPath);
 
-  const pillarW = 8;
+  const pillarW = 6; 
   const pillarH = panelTotalH;
 
-  const leftPillarX = margin + 26;
+  // Отступы считаем от нового узкого блока (segmentBoxX)
+  const leftPillarX = segmentBoxX + 16; 
   const leftPillarY = segmentBottomY - pillarH;
-
   const panelX = leftPillarX + pillarW;
-  const panelY = segmentBottomY - panelTotalH;
-
-  const panelW = pageW - margin * 2 - 52 - pillarW * 2;
-
+  const panelW = segmentBoxW - 32 - pillarW * 2; // 16px отступ слева и справа
   const rightPillarX = panelX + panelW;
   const rightPillarY = leftPillarY;
 
-  doc.addImage(
-    pillarImg,
-    pillarFormat,
-    leftPillarX,
-    leftPillarY,
-    pillarW,
-    pillarH
-  );
-    paintRect(doc, leftPillarX, leftPillarY, pillarW, pillarH, tint);
+  // Отрисовка столбов
+  doc.addImage(pillarImg, pillarFormat, leftPillarX, leftPillarY, pillarW, pillarH);
+  paintRect(doc, leftPillarX, leftPillarY, pillarW, pillarH, tint);
+  doc.addImage(pillarImg, pillarFormat, rightPillarX, rightPillarY, pillarW, pillarH);
+  paintRect(doc, rightPillarX, rightPillarY, pillarW, pillarH, tint);
 
-  doc.addImage(
-    pillarImg,
-    pillarFormat,
-    rightPillarX,
-    rightPillarY,
-    pillarW,
-    pillarH
-  );
-    paintRect(doc, rightPillarX, rightPillarY, pillarW, pillarH, tint);
-
+  // Отрисовка панелей
   let currentBottom = segmentBottomY;
-
   for (const row of rows) {
     const panelPath = getPanelImagePath(row);
     const panelImg = await imageUrlToBase64(panelPath);
     const panelFormat = getImageFormatFromPath(panelPath);
     const rowH = (row.heightCm / totalCm) * panelTotalH;
 
-    doc.addImage(
-      panelImg,
-      panelFormat,
-      panelX,
-      currentBottom - rowH,
-      panelW,
-      rowH
-    );
-        paintRect(doc, panelX, currentBottom - rowH, panelW, rowH, tint);
+    doc.addImage(panelImg, panelFormat, panelX, currentBottom - rowH, panelW, rowH);
+    paintRect(doc, panelX, currentBottom - rowH, panelW, rowH, tint);
 
     currentBottom -= rowH;
   }
 
-  const infoY = boxY + boxH + 10;
+  // --- Рамка для 2D-плана (На всю ширину страницы) ---
+  const frameY = boxY + boxH + 8;
+  const frameH = 95; 
+  const fullWidth = pageW - margin * 2;
+  
+  if (layoutImageBase64) {
+    try {
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.setTextColor(BRAND_RED);
+      const planViewTitle = t('quotationPlanView' as TranslationKey) || '2D PLAN VIEW';
+      doc.text(planViewTitle, margin, frameY - 2);
 
+      doc.setFillColor(255, 255, 255);
+      doc.setDrawColor(MID_GRAY);
+      doc.setLineWidth(0.4);
+      doc.roundedRect(margin, frameY, fullWidth, frameH, 2, 2, 'FD');
+
+      const imgProps = doc.getImageProperties(layoutImageBase64);
+      const padding = 2;
+      const maxImgW = fullWidth - padding * 2;
+      const maxImgH = frameH - padding * 2;
+      
+      const ratio = Math.min(maxImgW / imgProps.width, maxImgH / imgProps.height);
+      const finalW = imgProps.width * ratio;
+      const finalH = imgProps.height * ratio;
+      
+      const imgX = margin + (fullWidth - finalW) / 2;
+      const imgY = frameY + (frameH - finalH) / 2;
+      
+      doc.addImage(layoutImageBase64, imgProps.fileType || 'PNG', imgX, imgY, finalW, finalH);
+    } catch (err) {
+      console.warn('Could not add 2D layout image to PDF:', err);
+    }
+  }
+
+  // --- Итоговый текст в самом низу страницы ---
+  const infoY = frameY + frameH + 8;
+  
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8);
+  doc.setTextColor(80, 80, 80);
+  
+  doc.text(`${t('quotationLength').toUpperCase()}: ${price.totalLengthM} m`, margin, infoY);
+  doc.text(`${t('quotationWeight').toUpperCase()}: ${price.totalWeightKg} kg`, margin, infoY + 5);
+  doc.text(`SEGMENTS: ${segmentCount}`, margin, infoY + 10);
+
+  // Terms and conditions
+  const termsY = infoY + 17;
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(9);
-  doc.setTextColor(90, 90, 90);
-  doc.text(`${t('quotationLength')}: ${price.totalLengthM} m`, margin, infoY);
-  doc.text(`${t('quotationWeight')}: ${price.totalWeightKg} kg`, margin, infoY + 6);
-  doc.text(`Segments: ${segmentCount}`, margin, infoY + 12);
+  doc.setFontSize(8);
+  doc.setTextColor(100, 100, 100);
+  doc.text(`${t('quotationTerms')}:`, margin, termsY);
+
+  const termsUrl = 'https://euromuro.odoo.com/terms';
+  doc.setTextColor(BRAND_RED);
+  doc.textWithLink(termsUrl, margin + doc.getTextWidth(`${t('quotationTerms')}: `) + 1, termsY, { url: termsUrl });
 }
 
 function drawFooter(

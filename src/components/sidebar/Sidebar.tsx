@@ -19,6 +19,8 @@ import TourGuide from '../ui/TourGuide';
 import type { Locale } from '../../lib/i18n';
 import { createPortal } from "react-dom";
 
+
+
 export default function Sidebar() {
   const locale = useDesignerStore((s) => s.locale);
   const setLocale = useDesignerStore((s) => s.setLocale);
@@ -45,6 +47,7 @@ const setSelectedRal = useDesignerStore((s) => s.setSelectedRal);
 const deliveryCost = useDesignerStore((s) => s.deliveryCost);
 const deliveryDistanceKm = useDesignerStore((s) => s.deliveryDistanceKm);
 const setDeliveryCity = useDesignerStore((s) => s.setDeliveryCity);
+const layoutImageBase64 = useDesignerStore((s) => s.layoutImageBase64); // <--- ДОБАВИТЬ ЭТО
  
 
   const price = calcPrice(
@@ -157,7 +160,7 @@ const selectedRalItem = RAL_COLORS.find((ral) => ral.hex === selectedRal);
               <Thumb src={activePillar.imagePath} alt={activePillar.id} w={32} h={26} />
               <div>
                 <div style={{ fontSize: 11, fontWeight: 600 }}>{activePillar.heightCm} cm</div>
-                <div style={{ fontSize: 10, color: "#000" }}>{activePillar.aboveGroundCm}cm · {baseConcreteColor === 'white' ? activePillar.priceWhite : activePillar.price}€</div>
+                <div style={{ fontSize: 10, color: "#000" }}>{activePillar.aboveGroundCm}cm</div>
               </div>
             </div>
           </Section>
@@ -223,21 +226,29 @@ const selectedRalItem = RAL_COLORS.find((ral) => ral.hex === selectedRal);
             {hasItems && (
               <button id="tour-pdf-btn"
                 style={{ padding: "8px", borderRadius: 6, border: "none", cursor: "pointer", background: "#d3001b", color: "#fff", fontWeight: 700, fontSize: 12 }}
-                onClick={() => generateQuotationPdf({
-  price,
-  pillar: activePillar,
-  rows,
-  fenceHeightCm,
-  baseConcreteColor,
-  selectedRal: selectedRal ?? undefined,
-  selectedRalLabel: selectedRalItem?.label ?? undefined,
-  panelOrientation,
-  deliveryCity,
-  deliveryDistanceKm,
-  deliveryTrucks: deliveryCity ? getTruckCount(price.totalWeightKg) : 0,
-  deliveryCost,
-  locale
-})}
+                
+                // ─── ИЗМЕНЕНО: Кнопка скачивания PDF теперь асинхронная и берет скриншот ───
+                onClick={async () => {
+
+                  
+                  generateQuotationPdf({
+    price,
+    pillar: activePillar,
+    rows,
+    fenceHeightCm,
+    baseConcreteColor,
+    selectedRal: selectedRal ?? undefined,
+    selectedRalLabel: selectedRalItem?.label ?? undefined,
+    panelOrientation,
+    deliveryCity,
+    deliveryDistanceKm,
+    deliveryTrucks: deliveryCity ? getTruckCount(price.totalWeightKg) : 0,
+    deliveryCost,
+    locale,
+    layoutImageBase64: layoutImageBase64 // <--- Теперь берется прямо из памяти!
+  });
+                }}
+                // ──────────────────────────────────────────────────────────────────────────
               >
                 {t('downloadPdf')}
               </button>
@@ -277,7 +288,7 @@ const selectedRalItem = RAL_COLORS.find((ral) => ral.hex === selectedRal);
             </>
           ) : (
             <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <div style={{ fontSize: 11, color: "#444", textAlign: "center" }}>
+              <div style={{ fontSize: 30, color: "#d3001b", textAlign: "center", fontWeight: 700, lineHeight: 1.2 }}>
                  {t('drawTheFenceToSee')}
               </div>
             </div>
@@ -439,6 +450,7 @@ const t = useT();
           maxHeight: "70vh",
           minHeight: "70vh",
           overflowY: "auto",
+          scrollbarGutter: 'stable',
         }}
       >
         {/* Шапка попапа */}
@@ -526,10 +538,10 @@ function PanelDropdown({ selected, onSelect, availablePanels = PANEL_MODELS, pla
       <button onClick={() => setOpen((v) => !v)} style={triggerStyle(open)}>
         {selected ? (
           <>
-            <Thumb src={selected.imagePath} alt={selected.label} w={38} h={28} />
+            <Thumb src={selected.imagePath} alt={selected.label} w={209} h={50} />
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 12, fontWeight: 600 }}>{selected.label}</div>
-              <div style={{ fontSize: 10, color: "#000" }}>{selected.heightCm} cm · {isWhite ? selected.priceWhite : selected.priceGrey} €</div>
+              <div style={{ fontSize: 10, color: "#000" }}>{selected.heightCm} cm</div>
             </div>
           </>
         ) : (
@@ -541,10 +553,10 @@ function PanelDropdown({ selected, onSelect, availablePanels = PANEL_MODELS, pla
         <div style={dropdownListStyle}>
           {availablePanels.map((panel, idx) => (
             <button key={panel.id} onClick={() => { onSelect(panel); setOpen(false); }} style={dropdownItemStyle(selected?.id === panel.id, idx === availablePanels.length - 1)}>
-              <Thumb src={panel.imagePath} alt={panel.label} w={44} h={32} />
+              <Thumb src={panel.imagePath} alt={panel.label} w={209} h={50} />
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 12, fontWeight: 600, color: selected?.id === panel.id ? "#d3001b" : "#fff" }}>{panel.label}</div>
-                <div style={{ fontSize: 10, color: "#fff" }}>{panel.heightCm} cm · {isWhite ? panel.priceWhite : panel.priceGrey} €/m²</div>
+                <div style={{ fontSize: 10, color: "#fff" }}>{panel.heightCm} cm</div>
               </div>
               {selected?.id === panel.id && <span style={{ color: "#d3001b" }}>✓</span>}
             </button>
@@ -575,10 +587,10 @@ function PillarDropdown({ selectedStyle, activePillar, onSelectStyle, isWhite = 
   return (
     <div ref={ref} style={{ position: "relative" }}>
       <button onClick={() => setOpen((v) => !v)} style={triggerStyle(open)}>
-        <Thumb src={selectedPillar.imagePath} alt={selectedPillar.id} w={38} h={28} />
+        <Thumb src={selectedPillar.imagePath} alt={selectedPillar.id} w={70} h={40} />
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 12, fontWeight: 600 }}>{selectedPillar.style === "smooth" ? "Smooth" : "Woodlike"}</div>
-          <div style={{ fontSize: 10, color: "#fff" }}>{isWhite ? selectedPillar.priceWhite : selectedPillar.price} €/unit</div>
+          <div style={{ fontSize: 10, color: "#fff" }}></div>
         </div>
         <Arrow open={open} />
       </button>
@@ -586,10 +598,10 @@ function PillarDropdown({ selectedStyle, activePillar, onSelectStyle, isWhite = 
         <div style={dropdownListStyle}>
           {pillarOptions.map((pillar, idx) => (
             <button key={pillar.id} onClick={() => { onSelectStyle(pillar.style); setOpen(false); }} style={dropdownItemStyle(selectedStyle === pillar.style, idx === pillarOptions.length - 1)}>
-              <Thumb src={pillar.imagePath} alt={pillar.id} w={44} h={32} />
+              <Thumb src={pillar.imagePath} alt={pillar.id} w={70} h={40} />
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 12, fontWeight: 600, color: selectedStyle === pillar.style ? "#d3001b" : "#fff" }}>{pillar.style === "smooth" ? "Smooth" : "Woodlike"}</div>
-                <div style={{ fontSize: 10, color: "#fff" }}>{isWhite ? pillar.priceWhite : pillar.price} €/unit</div>
+                <div style={{ fontSize: 10, color: "#fff" }}></div>
               </div>
               {selectedStyle === pillar.style && <span style={{ color: "#d3001b" }}>✓</span>}
             </button>

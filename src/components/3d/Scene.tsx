@@ -1,5 +1,5 @@
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { OrbitControls, Grid, useTexture } from "@react-three/drei";
+import { OrbitControls, Grid, useTexture, Environment, ContactShadows } from "@react-three/drei";
 import { Suspense, useMemo, useRef } from "react";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { useDesignerStore } from "../../store/useDesignerStore";
@@ -356,13 +356,25 @@ export default function Scene() {
       gl={{ localClippingEnabled: true }}
       shadows
     >
-      <ambientLight intensity={1.2} />
+     {/* 1. Environment Map for realistic reflections and global illumination */}
+      <Environment preset="park" background={false} />
+
+      {/* 2. Hemisphere light to simulate sky and ground bounce light */}
+      <hemisphereLight skyColor="#ffffff" groundColor="#444444" intensity={0.6} />
+
+      {/* 3. Main sun with optimized shadow properties */}
       <directionalLight
         position={[15, 20, 10]}
-        intensity={2}
+        intensity={1.5}
         castShadow
         shadow-mapSize={[2048, 2048]}
-      />
+        shadow-bias={-0.0001}
+      >
+        <orthographicCamera attach="shadow-camera" args={[-40, 40, 40, -40]} />
+      </directionalLight>
+
+      {/* 4. Soft fill light from the opposite angle to soften harsh shadows */}
+      <directionalLight position={[-15, 10, -10]} intensity={0.5} />
 
       {houses.map((house) => (
         <ProceduralHouse
@@ -380,19 +392,25 @@ export default function Scene() {
         const rotY = -item.rotation;
 
         if (item.type === "post") {
-          return (
-            <Suspense fallback={null} key={`post-${idx}`}>
-              <PillarModel
-                modelPath={activePillar.modelPath}
-                burialM={activePillar.burialCm / 100}
-                fenceHeightM={fenceHeightCm / 100}
-                position={[x, 0, z]}
-                rotation={[0, rotY, 0]}
-                panelOrientation={panelOrientation}
-              />
-            </Suspense>
-          );
-        }
+  const pillarOffset =
+    panelOrientation === "inward" ? -0.12 : 0;
+
+  const pillarX = x + pillarOffset * Math.sin(rotY);
+  const pillarZ = z + pillarOffset * Math.cos(rotY);
+
+  return (
+    <Suspense fallback={null} key={`post-${idx}`}>
+      <PillarModel
+        modelPath={activePillar.modelPath}
+        burialM={activePillar.burialCm / 100}
+        fenceHeightM={fenceHeightCm / 100}
+        position={[pillarX, 0, pillarZ]}
+        rotation={[0, rotY, 0]}
+        panelOrientation={panelOrientation}
+      />
+    </Suspense>
+  );
+}
 
         const row = getRow(item.rowIndex ?? 0);
         if (!row) return null;
@@ -401,15 +419,17 @@ export default function Scene() {
         const isDouble = row.panel.side === "double";
 
         const panelOffset =
-          is30
-            ? panelOrientation === "inward"
-              ? 0.06
-              : -0.06
-            : isDouble
-            ? panelOrientation === "inward"
-              ? 0.02
-              : -0.02
-            : 0;
+  is30
+    ? panelOrientation === "inward"
+      ? -0.06
+      : -0.06
+    : isDouble
+    ? panelOrientation === "inward"
+      ? -0.1
+      : -0.02
+    : panelOrientation === "inward"
+    ? -0.12
+    : 0;
 
         const px = x + panelOffset * Math.sin(rotY);
         const pz = z + panelOffset * Math.cos(rotY);
@@ -427,19 +447,31 @@ export default function Scene() {
       })}
 
       <OrbitControls
-        ref={controlsRef}
-        makeDefault
-        enableDamping
-        dampingFactor={0.08}
-        screenSpacePanning={false}
-        minDistance={4}
-        maxDistance={120}
-        minPolarAngle={0}
-        maxPolarAngle={Math.PI}
-      />
+  ref={controlsRef}
+  makeDefault
+  enableDamping
+  dampingFactor={0.08}
+  screenSpacePanning={false}
+  minDistance={4}
+  maxDistance={120}
+  minPolarAngle={0}
+  // Change this line from Math.PI to Math.PI / 2
+  maxPolarAngle={Math.PI / 2}
+  rotateSpeed={0.6} // Controls how fast the camera orbits
+        zoomSpeed={0.5}   // Controls the scroll wheel zoom speed
+        panSpeed={0.6}    // Controls the right-click drag speed
+/>
 
       <CameraSphereGizmo controlsRef={controlsRef} />
-
+        <ContactShadows
+        position={[0, 0.01, 0]}
+        opacity={0.5}
+        scale={80}
+        blur={2}
+        far={10}
+        resolution={1024}
+        color="#000000"
+      />
       <Suspense fallback={null}>
         <GroundPlane />
       </Suspense>

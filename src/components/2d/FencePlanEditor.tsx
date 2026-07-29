@@ -7,10 +7,8 @@ import type Konva from "konva";
 import Grid from "./Grid";
 import { useT } from '../../lib/i18n';
 
-
 type Size = { w: number; h: number };
 type Point = { x: number; y: number };
-
 
 const STEP = 50;
 const METERS_PER_CELL = 1;
@@ -19,22 +17,17 @@ const MAX_SCALE = 5;
 const HANDLE_R = 6;
 const CLOSE_SNAP_RADIUS = 30;
 
-
-
 function snapToGrid(val: number, step: number, scale: number): number {
   return Math.round(val / step) * step;
 }
-
 
 function pxToMeters(px: number): number {
   return Math.round((px / STEP) * METERS_PER_CELL * 10) / 10;
 }
 
-
 function distPx(a: Point, b: Point): number {
   return Math.hypot(b.x - a.x, b.y - a.y);
 }
-
 
 export default function FencePlanEditor() {
   const points        = useDesignerStore((s) => s.boundaryPoints);
@@ -46,8 +39,12 @@ export default function FencePlanEditor() {
   const addHouse      = useDesignerStore((s) => s.addHouse);
   const updateHouse   = useDesignerStore((s) => s.updateHouse);
   const removeHouse   = useDesignerStore((s) => s.removeHouse);
-  const t = useT();
+  
+  // ─── ДОБАВЛЕНО: Достаем функцию для сохранения картинки ───
+  const setLayoutImageBase64 = useDesignerStore((s) => s.setLayoutImageBase64);
+  // ──────────────────────────────────────────────────────────
 
+  const t = useT();
 
   const containerRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState<Size>({ w: 1000, h: 800 });
@@ -67,6 +64,24 @@ export default function FencePlanEditor() {
   const touchPanOrigin = useRef({ x: 0, y: 0 });
   const spacePressedRef = useRef(false);
 
+  // ─── ДОБАВЛЕНО: Эффект для создания скриншота канваса ──────────
+  useEffect(() => {
+    // Используем таймаут, чтобы дать Konva время на рендер новых элементов
+    const timer = setTimeout(() => {
+      if (stageRef.current) {
+        try {
+          // Делаем скриншот с учетом масштабирования экрана (pixelRatio: 2 для четкости)
+          const dataUrl = stageRef.current.toDataURL({ pixelRatio: 2 });
+          setLayoutImageBase64(dataUrl);
+        } catch (err) {
+          console.warn("Failed to generate 2D layout screenshot:", err);
+        }
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [points, houses, scale, stagePos, setLayoutImageBase64]);
+  // ───────────────────────────────────────────────────────────────
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -76,13 +91,11 @@ export default function FencePlanEditor() {
         if (containerRef.current) containerRef.current.style.cursor = 'grab';
       }
 
-      // Esc — завершить рисование
       if (activeTool === 'fence' && (e.key === 'Escape')) {
         setIsDrawing(false);
         setCursor(null);
       }
 
-      // Backspace / Delete — удалить последнюю точку
       if (
         activeTool === 'fence' &&
         (e.key === 'Backspace' || e.key === 'Delete') &&
@@ -116,29 +129,24 @@ export default function FencePlanEditor() {
     };
   }, [activeTool, points, rebuildFence]);
 
-
   function handleWheel(e: KonvaEventObject<WheelEvent>) {
     e.evt.preventDefault();
     const stage = stageRef.current;
     if (!stage) return;
 
-
     const oldScale = stage.scaleX();
     const pointer  = stage.getPointerPosition();
     if (!pointer) return;
-
 
     const scaleBy  = 1.08;
     const newScale = e.evt.deltaY < 0
       ? Math.min(oldScale * scaleBy, MAX_SCALE)
       : Math.max(oldScale / scaleBy, MIN_SCALE);
 
-
     const mousePointTo = {
       x: (pointer.x - stage.x()) / oldScale,
       y: (pointer.y - stage.y()) / oldScale,
     };
-
 
     setScale(newScale);
     setStagePos({
@@ -146,7 +154,6 @@ export default function FencePlanEditor() {
       y: pointer.y - mousePointTo.y * newScale,
     });
   }
-
 
   function getScenePos(stage: Konva.Stage): Point | null {
     const pos = stage.getPointerPosition();
@@ -157,45 +164,35 @@ export default function FencePlanEditor() {
     };
   }
 
-
   function handleClick(e: KonvaEventObject<MouseEvent>) {
     if (spacePressedRef.current) return;
 
-    // Для инструмента house — разрешаем клик по любому элементу кроме ручек домов
     const targetName = e.target.name();
     const isHandle = targetName === 'handle' || targetName === 'house-body';
     
     if (activeTool === "fence") {
-      // Для забора — только клик по фону
       if (e.target !== e.target.getStage() && targetName !== "bg") return;
     } else if (activeTool === "house") {
-      // Для домика — игнорируем только клики по ручкам
       if (isHandle) return;
     }
-
 
     const stage = e.target.getStage();
     if (!stage) return;
     const pos = getScenePos(stage);
     if (!pos) return;
 
-
     const snapped = {
       x: snapToGrid(pos.x, STEP, scale),
       y: snapToGrid(pos.y, STEP, scale),
     };
 
-
     if (activeTool === "fence") {
-      // Первый клик — старт нового контура
       if (!isDrawing) {
         useDesignerStore.setState({ boundaryPoints: [snapped] });
         setIsDrawing(true);
         rebuildFence();
         return;
       }
-
-      // Дальнейшие клики — добавление точек
       addPoint(snapped);
       rebuildFence();
     } else if (activeTool === "house") {
@@ -204,21 +201,16 @@ export default function FencePlanEditor() {
     }
   }
 
-
   function handleDblClick(e: KonvaEventObject<MouseEvent>) {
     if (activeTool !== "fence") return;
     if (points.length < 2 || !isDrawing) return;
-    // Закрываем контур
     addPoint({ x: points[0].x, y: points[0].y });
     rebuildFence();
-    // Останавливаем рисование и preview
     setIsDrawing(false);
     setCursor(null);
   }
 
-
   function handleMouseMove(e: KonvaEventObject<MouseEvent>) {
-    // Пан
     if (panStart.current) {
       const dx = e.evt.clientX - panStart.current.x;
       const dy = e.evt.clientY - panStart.current.y;
@@ -228,7 +220,6 @@ export default function FencePlanEditor() {
       });
       return;
     }
-    // Курсор
     const stage = e.target.getStage();
     if (!stage) return;
     const pos = getScenePos(stage);
@@ -240,14 +231,12 @@ export default function FencePlanEditor() {
   }
 
   function handleMouseDown(e: KonvaEventObject<MouseEvent>) {
-    // Средняя/правая кнопка — всегда пан
     if (e.evt.button === 1 || e.evt.button === 2) {
       e.evt.preventDefault();
       panStart.current  = { x: e.evt.clientX, y: e.evt.clientY };
       panOrigin.current = { ...stagePos };
       return;
     }
-    // Левая кнопка + пробел — пан
     if (e.evt.button === 0 && spacePressedRef.current) {
       panStart.current  = { x: e.evt.clientX, y: e.evt.clientY };
       panOrigin.current = { ...stagePos };
@@ -255,14 +244,12 @@ export default function FencePlanEditor() {
     }
   }
 
-
   function handleMouseUp() {
     panStart.current = null;
     if (containerRef.current && spacePressedRef.current) {
       containerRef.current.style.cursor = 'grab';
     }
   }
-
 
   function handleMouseLeave() {
     setCursor(null);
@@ -276,13 +263,10 @@ export default function FencePlanEditor() {
     };
   }
 
-
   function handleTouchStart(e: KonvaEventObject<TouchEvent>) {
     const touches = e.evt.touches;
 
-
     if (touches.length === 2) {
-      // Pinch-zoom start
       e.evt.preventDefault();
       const dx = touches[0].clientX - touches[1].clientX;
       const dy = touches[0].clientY - touches[1].clientY;
@@ -296,18 +280,14 @@ export default function FencePlanEditor() {
       return;
     }
 
-
     if (touches.length === 1) {
-      // Pan start
       touchPanStart.current = { x: touches[0].clientX, y: touches[0].clientY };
       touchPanOrigin.current = { ...stagePos };
     }
   }
 
-
   function handleTouchMove(e: KonvaEventObject<TouchEvent>) {
     const touches = e.evt.touches;
-
 
     if (touches.length === 2 && pinchStartDist.current !== null) {
       e.evt.preventDefault();
@@ -318,10 +298,8 @@ export default function FencePlanEditor() {
         pinchStartScale.current * (dist / pinchStartDist.current)
       ));
 
-
       const stage = stageRef.current;
       if (!stage) return;
-
 
       const center = pinchStartPos.current;
       const oldScale = pinchStartScale.current;
@@ -329,7 +307,6 @@ export default function FencePlanEditor() {
         x: (center.x - stage.x()) / oldScale,
         y: (center.y - stage.y()) / oldScale,
       };
-
 
       setScale(newScale);
       setStagePos({
@@ -339,11 +316,9 @@ export default function FencePlanEditor() {
       return;
     }
 
-
     if (touches.length === 1 && touchPanStart.current) {
       const dx = touches[0].clientX - touchPanStart.current.x;
       const dy = touches[0].clientY - touchPanStart.current.y;
-      // Если сдвиг небольшой — это тап, не пан
       if (Math.hypot(dx, dy) > 8) {
         setStagePos({
           x: touchPanOrigin.current.x + dx,
@@ -353,43 +328,34 @@ export default function FencePlanEditor() {
     }
   }
 
-
   function handleTouchEnd(e: KonvaEventObject<TouchEvent>) {
     if (e.evt.touches.length === 0 && e.evt.changedTouches.length === 1) {
       const touch = e.evt.changedTouches[0];
 
-
-      // Проверяем что это тап (не пан)
       if (touchPanStart.current) {
         const dx = touch.clientX - touchPanStart.current.x;
         const dy = touch.clientY - touchPanStart.current.y;
         const isTap = Math.hypot(dx, dy) < 8;
 
-
         if (isTap) {
           const stage = stageRef.current;
           if (!stage) return;
 
-
           const now = Date.now();
           const isDoubleTap = now - lastTapRef.current < 300;
           lastTapRef.current = now;
-
 
           const pos: Point = {
             x: (touch.clientX - stage.container().getBoundingClientRect().left - stage.x()) / stage.scaleX(),
             y: (touch.clientY - stage.container().getBoundingClientRect().top  - stage.y()) / stage.scaleY(),
           };
 
-
           const snapped = {
             x: snapToGrid(pos.x, STEP, scale),
             y: snapToGrid(pos.y, STEP, scale),
           };
 
-
           if (isDoubleTap && activeTool === "fence" && points.length >= 2) {
-            // Double tap — закрыть контур
             addPoint({ x: points[0].x, y: points[0].y });
             rebuildFence();
             setIsDrawing(false);
@@ -411,12 +377,9 @@ export default function FencePlanEditor() {
       }
     }
 
-
     pinchStartDist.current = null;
     touchPanStart.current = null;
   }
-  
-
 
   const lastPoint   = points.length > 0 ? points[points.length - 1] : null;
   const dragLengthM = lastPoint && cursor && activeTool === "fence" && isDrawing
@@ -426,24 +389,14 @@ export default function FencePlanEditor() {
     ? { x: (lastPoint.x + cursor.x) / 2, y: (lastPoint.y + cursor.y) / 2 }
     : null;
 
-
   return (
     <div ref={containerRef} style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", zIndex: 1, pointerEvents: "auto" }}>
+      <div className="viewport-hint">
+        {"ontouchstart" in window
+          ? t('tooltip2dMob')
+          : t('tooltip2dDes')}
+      </div>
 
-
-      {/* Тулбар */}
-      
-
-
-      {/* Подсказка */}
-     <div className="viewport-hint">
-  {"ontouchstart" in window
-    ? t('tooltip2dMob')
-    : t('tooltip2dDes')}
-</div>
-
-
-      {/* Масштаб */}
       <div style={{
         position: "fixed", bottom: 56, right: 24, zIndex: 200,
         background: "rgba(0,0,0,0.45)", color: "#fff",
@@ -451,7 +404,6 @@ export default function FencePlanEditor() {
       }}>
         {Math.round(scale * 100)}%
       </div>
-
 
       <Stage
         ref={stageRef}
@@ -461,7 +413,7 @@ export default function FencePlanEditor() {
         scaleY={scale}
         x={stagePos.x}
         y={stagePos.y}
-         draggable={false} 
+        draggable={false} 
         onWheel={handleWheel}
         onClick={handleClick}
         onMouseMove={handleMouseMove}
@@ -474,17 +426,9 @@ export default function FencePlanEditor() {
         onTouchEnd={handleTouchEnd} 
       >
         <Layer>
-          {/* Фон */}
           <Rect name="bg" x={-5000} y={-5000} width={10000} height={10000} fill="#f5f5f5" />
-
-
-          {/* Сетка */}
           <Grid width={size.w} height={size.h} step={STEP} metersPerCell={METERS_PER_CELL} scale={scale} />
 
-
-
-
-          {/* Нарисованные линии забора */}
           {points.length > 1 && (
             <Line
               points={points.flatMap((p) => [p.x, p.y])}
@@ -498,8 +442,6 @@ export default function FencePlanEditor() {
             />
           )}
 
-
-          {/* Длины зафиксированных сегментов */}
           {points.slice(0, -1).map((p, i) => {
             const next = points[i + 1];
             const mx   = (p.x + next.x) / 2;
@@ -521,8 +463,6 @@ export default function FencePlanEditor() {
             );
           })}
 
-
-          {/* Тянущаяся preview линия */}
           {lastPoint && cursor && activeTool === "fence" && isDrawing && (
             <Line
               points={[lastPoint.x, lastPoint.y, cursor.x, cursor.y]}
@@ -533,8 +473,6 @@ export default function FencePlanEditor() {
             />
           )}
 
-
-          {/* Подпись длины preview линии */}
           {dragMid && dragLengthM !== null && dragLengthM > 0 && (
             <>
               <Rect
@@ -561,8 +499,6 @@ export default function FencePlanEditor() {
             </>
           )}
 
-
-          {/* Точки забора */}
           {points.map((p, i) => (
             <Circle
               key={i}
@@ -585,8 +521,6 @@ export default function FencePlanEditor() {
             />
           ))}
 
-
-          {/* Курсор — снапнутая точка */}
           {cursor && (
             <Circle
               x={cursor.x}
@@ -598,8 +532,6 @@ export default function FencePlanEditor() {
             />
           )}
 
-
-          {/* Дома */}
           {houses.map((house) => (
             <HouseShape
               key={house.id}
@@ -615,10 +547,6 @@ export default function FencePlanEditor() {
   );
 }
 
-
-// ─── HouseShape ────────────────────────────────────────────────────────────────
-
-
 function HouseShape({ house, scale, onUpdate, onRemove }: {
   house: House;
   scale: number;
@@ -630,13 +558,10 @@ function HouseShape({ house, scale, onUpdate, onRemove }: {
   const sw = 2 / scale;
   const hr = HANDLE_R / scale;
 
-
   const wM = pxToMeters(house.widthPx).toFixed(1);
   const dM = pxToMeters(house.depthPx).toFixed(1);
 
-
   type Corner = "tl" | "tr" | "br" | "bl";
-
 
   function handleCornerDrag(corner: Corner, nx: number, ny: number) {
     const left   = house.x - house.widthPx / 2;
@@ -644,20 +569,16 @@ function HouseShape({ house, scale, onUpdate, onRemove }: {
     const top    = house.z - house.depthPx / 2;
     const bottom = house.z + house.depthPx / 2;
 
-
     let cx = house.x, cz = house.z, w = house.widthPx, d = house.depthPx;
-
 
     if (corner === "tl")      { w = right - nx; d = bottom - ny; cx = nx + w / 2; cz = ny + d / 2; }
     else if (corner === "tr") { w = nx - left;  d = bottom - ny; cx = left + w / 2; cz = ny + d / 2; }
     else if (corner === "br") { w = nx - left;  d = ny - top;   cx = left + w / 2; cz = top + d / 2; }
     else                      { w = right - nx; d = ny - top;   cx = nx + w / 2;  cz = top + d / 2; }
 
-
     if (w < 30 || d < 30) return;
     onUpdate({ x: cx, z: cz, widthPx: w, depthPx: d });
   }
-
 
   const corners: { corner: Corner; cx: number; cy: number }[] = [
     { corner: "tl", cx: x,                 cy: y },
@@ -666,17 +587,14 @@ function HouseShape({ house, scale, onUpdate, onRemove }: {
     { corner: "bl", cx: x,                 cy: y + house.depthPx },
   ];
 
-
   const labelFontSize = 12 / scale;
   const labelPad      = 4 / scale;
   const labelText     = `${wM} × ${dM} м`;
   const labelW        = labelText.length * labelFontSize * 0.62 + labelPad * 2;
   const labelH        = labelFontSize + labelPad * 2;
 
-
   return (
     <Group>
-      {/* Тело дома */}
       <Rect
         name="house-body"
         x={x} y={y}
@@ -693,9 +611,6 @@ function HouseShape({ house, scale, onUpdate, onRemove }: {
         }}
         onDblClick={onRemove}
       />
-
-
-      {/* Крыша */}
       <Line
         points={[
           x + house.widthPx * 0.1, y,
@@ -705,9 +620,6 @@ function HouseShape({ house, scale, onUpdate, onRemove }: {
         stroke="#8B6914" strokeWidth={sw}
         listening={false}
       />
-
-
-      {/* Метка размера — обновляется при ресайзе */}
       <Rect
         x={house.x - labelW / 2}
         y={house.z - labelH / 2}
@@ -725,9 +637,6 @@ function HouseShape({ house, scale, onUpdate, onRemove }: {
         fontStyle="bold"
         listening={false}
       />
-
-
-      {/* Угловые ручки */}
       {corners.map(({ corner, cx, cy }) => (
         <Circle
           key={corner}
@@ -743,10 +652,6 @@ function HouseShape({ house, scale, onUpdate, onRemove }: {
     </Group>
   );
 }
-
-
-// ─── ToolBtn ───────────────────────────────────────────────────────────────────
-
 
 function ToolBtn({ active, onClick, children }: {
   active: boolean;

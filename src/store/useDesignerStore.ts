@@ -86,26 +86,23 @@ type DesignerStore = {
   rows: FenceRow[];
   locale: Locale;        
   setLocale: (l: Locale) => void;
-   tourOpen: boolean;           // ← добавить
+  tourOpen: boolean;
   setTourOpen: (v: boolean) => void; 
-  // В type/interface состояния (где объявлены все поля):
-rowsPopupOpen: boolean;
-setRowsPopupOpen: (v: boolean) => void;
-mobileTab: 'preview' | 'settings';
-setMobileTab: (tab: 'preview' | 'settings') => void;
+  rowsPopupOpen: boolean;
+  setRowsPopupOpen: (v: boolean) => void;
+  mobileTab: 'preview' | 'settings';
+  setMobileTab: (tab: 'preview' | 'settings') => void;
 
   deliveryCity: CityResult | null;
-deliveryDistanceKm: number;
-deliveryCost: number;
-setDeliveryCity: (city: CityResult | null, distanceKm: number, cost: number) => void;
+  deliveryDistanceKm: number;
+  deliveryCost: number;
+  setDeliveryCity: (city: CityResult | null, distanceKm: number, cost: number) => void;
   
-
-  //color
   // color
-baseConcreteColor: 'grey' | 'white';
-selectedRal: string | null;
-setBaseConcreteColor: (color: 'grey' | 'white') => void;
-setSelectedRal: (ral: string | null) => void;
+  baseConcreteColor: 'grey' | 'white';
+  selectedRal: string | null;
+  setBaseConcreteColor: (color: 'grey' | 'white') => void;
+  setSelectedRal: (ral: string | null) => void;
 
   // Пиллар
   selectedPillarStyle: PillarStyle;
@@ -113,7 +110,7 @@ setSelectedRal: (ral: string | null) => void;
 
   panelOrientation: 'outward' | 'inward';
   setPanelOrientation: (v: 'outward' | 'inward') => void;
-    groundType: 'grass' | 'calcada' | 'ground' | 'grid';
+  groundType: 'grass' | 'calcada' | 'ground' | 'grid';
   setGroundType: (v: 'grass' | 'calcada' | 'ground' | 'grid') => void;
 
   // Дома
@@ -121,6 +118,11 @@ setSelectedRal: (ral: string | null) => void;
 
   // Инструмент
   activeTool: "fence" | "house";
+
+  // ─── ДОБАВЛЕНО ДЛЯ PDF ────────────────────────────
+  layoutImageBase64: string | undefined;
+  setLayoutImageBase64: (img: string | undefined) => void;
+  // ──────────────────────────────────────────────────
 
   // Actions — забор
   addPoint: (p: Point) => void;
@@ -153,35 +155,40 @@ export const useDesignerStore = create<DesignerStore>((set, get) => ({
   panelOrientation: 'outward',
   houses: [],
   activeTool: "fence",
-setPanelOrientation: (v) => set({ panelOrientation: v }),
-baseConcreteColor: 'grey',
-selectedRal: null,
-setBaseConcreteColor: (color) => set({ baseConcreteColor: color }),
-setSelectedRal: (ral) => set({ selectedRal: ral }),
-groundType: 'grid',
+  setPanelOrientation: (v) => set({ panelOrientation: v }),
+  baseConcreteColor: 'grey',
+  selectedRal: null,
+  setBaseConcreteColor: (color) => set({ baseConcreteColor: color }),
+  setSelectedRal: (ral) => set({ selectedRal: ral }),
+  groundType: 'grid',
   setGroundType: (v) => set({ groundType: v }),
   tourOpen: false,
   setTourOpen: (v) => set({ tourOpen: v }),
-rowsPopupOpen: false,                              // ← добавить
-setRowsPopupOpen: (v) => set({ rowsPopupOpen: v }),
-mobileTab: 'settings',
-setMobileTab: (tab) => set({ mobileTab: tab }),                        // ← добавить
+  rowsPopupOpen: false,
+  setRowsPopupOpen: (v) => set({ rowsPopupOpen: v }),
+  mobileTab: 'settings',
+  setMobileTab: (tab) => set({ mobileTab: tab }),
   deliveryCity: null,
-deliveryDistanceKm: 0,
-deliveryCost: 0,
-locale: 'en',
+  deliveryDistanceKm: 0,
+  deliveryCost: 0,
+  locale: 'en',
+
+  // ─── ДОБАВЛЕНО ДЛЯ PDF ────────────────────────────
+  layoutImageBase64: undefined,
+  setLayoutImageBase64: (img) => set({ layoutImageBase64: img }),
+  // ──────────────────────────────────────────────────
 
   // ─── Забор ────────────────────────────────────────────────────────────────
 
   addPoint: (p) => set((s) => ({ boundaryPoints: [...s.boundaryPoints, p] })),
+  
   // Delivery
-
-setDeliveryCity: (city: CityResult | null, distanceKm: number, cost: number) =>
-  set({
-    deliveryCity: city,
-    deliveryDistanceKm: distanceKm,
-    deliveryCost: cost,
-  }),
+  setDeliveryCity: (city: CityResult | null, distanceKm: number, cost: number) =>
+    set({
+      deliveryCity: city,
+      deliveryDistanceKm: distanceKm,
+      deliveryCost: cost,
+    }),
 
   setFenceHeight: (cm) => {
     const { selectedPillarStyle } = get();
@@ -203,7 +210,8 @@ setDeliveryCity: (city: CityResult | null, distanceKm: number, cost: number) =>
     });
     get().rebuildFence();
   },
-setLocale: (locale) => set({ locale }),
+  setLocale: (locale) => set({ locale }),
+  
   setSingleModel: (val) => {
     set({ singleModel: val, filledRows: [], rows: [] });
     get().rebuildFence();
@@ -244,35 +252,36 @@ setLocale: (locale) => set({ locale }),
   },
 
   rebuildFence: () => {
-  const { boundaryPoints, fenceHeightCm, rows, singleModel, singlePanel, houses } = get();
-  if (boundaryPoints.length < 2) { set({ fenceItems: [] }); return; }
+    const { boundaryPoints, fenceHeightCm, rows, singleModel, singlePanel, houses } = get();
+    if (boundaryPoints.length < 2) { set({ fenceItems: [] }); return; }
 
-  // ← singleModel всегда строит из singlePanel, не требует заполненных rows
-  const activeRows = singleModel
-    ? makeRows(fenceHeightCm, singlePanel)
-    : rows;
+    // ← singleModel всегда строит из singlePanel, не требует заполненных rows
+    const activeRows = singleModel
+      ? makeRows(fenceHeightCm, singlePanel)
+      : rows;
 
-  if (!singleModel && activeRows.length === 0) { set({ fenceItems: [] }); return; }
+    if (!singleModel && activeRows.length === 0) { set({ fenceItems: [] }); return; }
 
-  const rowHeightsCm = activeRows.map((r) => r.heightCm);
-  set({
-    fenceItems: buildFence(boundaryPoints, fenceHeightCm / 100, rowHeightsCm, houses),
-    rows: activeRows, // ← сохраняем актуальные rows в стор
-  });
-},
+    const rowHeightsCm = activeRows.map((r) => r.heightCm);
+    set({
+      fenceItems: buildFence(boundaryPoints, fenceHeightCm / 100, rowHeightsCm, houses),
+      rows: activeRows, // ← сохраняем актуальные rows в стор
+    });
+  },
 
   clearAll: () => set({
-  boundaryPoints: [],
-  fenceItems: [],
-  filledRows: [],
-  rows: [],
-  houses: [],
-  baseConcreteColor: 'grey',
-  selectedRal: null,
-  deliveryCity: null,
-  deliveryDistanceKm: 0,
-  deliveryCost: 0,
-}),
+    boundaryPoints: [],
+    fenceItems: [],
+    filledRows: [],
+    rows: [],
+    houses: [],
+    baseConcreteColor: 'grey',
+    selectedRal: null,
+    deliveryCity: null,
+    deliveryDistanceKm: 0,
+    deliveryCost: 0,
+    layoutImageBase64: undefined, // Очищаем картинку при сбросе
+  }),
 
   // ─── Дома ─────────────────────────────────────────────────────────────────
 
