@@ -160,7 +160,7 @@ export const useDesignerStore = create<DesignerStore>((set, get) => ({
   selectedRal: null,
   setBaseConcreteColor: (color) => set({ baseConcreteColor: color }),
   setSelectedRal: (ral) => set({ selectedRal: ral }),
-  groundType: 'grid',
+  groundType: 'grass',
   setGroundType: (v) => set({ groundType: v }),
   tourOpen: false,
   setTourOpen: (v) => set({ tourOpen: v }),
