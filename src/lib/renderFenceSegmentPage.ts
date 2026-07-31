@@ -162,9 +162,37 @@ async function drawSegmentBody(
   doc.setTextColor(BRAND_RED);
   doc.text(`x ${segmentCount}`, pageW - margin, titleY + 2, { align: 'right' });
 
-  // --- Узкая рамка Сегмента (центрируем) ---
-  const segmentBoxW = 130; // Делаем уже! (макс. ширина 174)
-  const segmentBoxX = (pageW - segmentBoxW) / 2; // Центрируем по горизонтали
+  // --- Загрузка человека и расчет пропорций ---
+  let personImgBase64 = '';
+  let personW = 0;
+  let personH = 0;
+  
+  // Высота забора в PDF-юнитах
+  const panelTotalH = Math.min(75, (fenceHeightCm / 200) * 75); 
+  
+  try {
+    personImgBase64 = await imageUrlToBase64('/person.png');
+    const personProps = doc.getImageProperties(personImgBase64);
+    
+    // Масштаб: юниты PDF на 1 см
+    const pdfScale = panelTotalH / fenceHeightCm;
+    
+    // Человек 170 см
+    personH = 170 * pdfScale;
+    // Соблюдение пропорций картинки
+    personW = personH * (personProps.width / personProps.height);
+  } catch (err) {
+    console.warn('Could not add person.png to PDF:', err);
+  }
+
+  // --- Узкая рамка Сегмента (центрируем группу "Забор + Человек") ---
+  const segmentBoxW = 130; 
+  const gapPerson = 8; // Отступ между забором и человеком
+  
+  // Общая визуальная ширина (чтобы сдвинуть забор левее при наличии человека)
+  const totalVisualW = segmentBoxW + (personImgBase64 ? gapPerson + personW : 0);
+  const segmentBoxX = (pageW - totalVisualW) / 2;
+  
   const boxY = 56;
   const boxH = 95; 
 
@@ -177,7 +205,6 @@ async function drawSegmentBody(
   );
 
   const segmentBottomY = boxY + boxH - 12;
-  const panelTotalH = Math.min(75, (fenceHeightCm / 200) * 75); 
 
   const pillarPath = getPillarImagePath(pillar);
   const pillarImg = await imageUrlToBase64(pillarPath);
@@ -186,11 +213,11 @@ async function drawSegmentBody(
   const pillarW = 6; 
   const pillarH = panelTotalH;
 
-  // Отступы считаем от нового узкого блока (segmentBoxX)
+  // Отступы считаем от нового отцентрованного блока (segmentBoxX)
   const leftPillarX = segmentBoxX + 16; 
   const leftPillarY = segmentBottomY - pillarH;
   const panelX = leftPillarX + pillarW;
-  const panelW = segmentBoxW - 32 - pillarW * 2; // 16px отступ слева и справа
+  const panelW = segmentBoxW - 32 - pillarW * 2; 
   const rightPillarX = panelX + panelW;
   const rightPillarY = leftPillarY;
 
@@ -214,9 +241,16 @@ async function drawSegmentBody(
     currentBottom -= rowH;
   }
 
-  // --- Рамка для 2D-плана (На всю ширину страницы) ---
+  // Отрисовка человека (если загрузился)
+  if (personImgBase64) {
+    const personX = segmentBoxX + segmentBoxW + gapPerson;
+    const personY = segmentBottomY - personH; // Стоит на одном уровне с забором
+    doc.addImage(personImgBase64, 'PNG', personX, personY, personW, personH);
+  }
+
+  // --- Рамка для 2D-плана (На всю ширину страницы, высота уменьшена) ---
   const frameY = boxY + boxH + 8;
-  const frameH = 95; 
+  const frameH = 75; // Уменьшено с 95
   const fullWidth = pageW - margin * 2;
   
   if (layoutImageBase64) {
@@ -250,8 +284,30 @@ async function drawSegmentBody(
     }
   }
 
+  // --- Текст под планом (3 строки) ---
+  // --- Текст под планом (Абзац с переносом строк) ---
+  const textUnderPlanY = frameY + frameH + 6;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(100, 100, 100);
+
+  const planLine1 = t('planDescription1' as TranslationKey) || 'Important layout information and mounting details. Please verify dimensions and boundary points carefully. Final execution may slightly vary depending on terrain.';
+
+  // Вычисляем максимально доступную ширину для текста (ширина страницы минус два марджина)
+  const maxTextWidth = pageW - margin * 2;
+  
+  // Разбиваем текст на массив строк, чтобы он поместился в maxTextWidth
+  const splitText = doc.splitTextToSize(planLine1, maxTextWidth);
+  
+  // Выводим получившийся массив (jsPDF сам расставит переносы)
+  doc.text(splitText, margin, textUnderPlanY);
+
+  // Считаем высоту получившегося текстового блока (примерно 4 юнита на каждую строку при 8 размере шрифта)
+  const textBlockHeight = splitText.length * 4;
+
   // --- Итоговый текст в самом низу страницы ---
-  const infoY = frameY + frameH + 8;
+  // Сдвигаем инфо-блок динамически, отступая от конца текстового блока
+  const infoY = textUnderPlanY + textBlockHeight + 8;
   
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8);
@@ -261,7 +317,7 @@ async function drawSegmentBody(
   doc.text(`${t('quotationWeight').toUpperCase()}: ${price.totalWeightKg} kg`, margin, infoY + 5);
   doc.text(`SEGMENTS: ${segmentCount}`, margin, infoY + 10);
 
-  // Terms and conditions
+  // Условия (Terms and conditions)
   const termsY = infoY + 17;
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
