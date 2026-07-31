@@ -55,7 +55,8 @@ export async function renderFenceSegmentPage({
     selectedRal,
     layoutImageBase64,
   });
-  drawFooter(doc, pageW, pageH, margin, t);
+  
+  await drawFooter(doc, pageW, pageH, margin, t);
 }
 
 async function drawHeader(
@@ -167,29 +168,24 @@ async function drawSegmentBody(
   let personW = 0;
   let personH = 0;
   
-  // Высота забора в PDF-юнитах
   const panelTotalH = Math.min(75, (fenceHeightCm / 200) * 75); 
   
   try {
     personImgBase64 = await imageUrlToBase64('/person.png');
     const personProps = doc.getImageProperties(personImgBase64);
     
-    // Масштаб: юниты PDF на 1 см
     const pdfScale = panelTotalH / fenceHeightCm;
     
-    // Человек 170 см
     personH = 170 * pdfScale;
-    // Соблюдение пропорций картинки
     personW = personH * (personProps.width / personProps.height);
   } catch (err) {
     console.warn('Could not add person.png to PDF:', err);
   }
 
-  // --- Узкая рамка Сегмента (центрируем группу "Забор + Человек") ---
+  // --- Узкая рамка Сегмента ---
   const segmentBoxW = 130; 
-  const gapPerson = 8; // Отступ между забором и человеком
+  const gapPerson = 8; 
   
-  // Общая визуальная ширина (чтобы сдвинуть забор левее при наличии человека)
   const totalVisualW = segmentBoxW + (personImgBase64 ? gapPerson + personW : 0);
   const segmentBoxX = (pageW - totalVisualW) / 2;
   
@@ -213,7 +209,6 @@ async function drawSegmentBody(
   const pillarW = 6; 
   const pillarH = panelTotalH;
 
-  // Отступы считаем от нового отцентрованного блока (segmentBoxX)
   const leftPillarX = segmentBoxX + 16; 
   const leftPillarY = segmentBottomY - pillarH;
   const panelX = leftPillarX + pillarW;
@@ -221,13 +216,11 @@ async function drawSegmentBody(
   const rightPillarX = panelX + panelW;
   const rightPillarY = leftPillarY;
 
-  // Отрисовка столбов
   doc.addImage(pillarImg, pillarFormat, leftPillarX, leftPillarY, pillarW, pillarH);
   paintRect(doc, leftPillarX, leftPillarY, pillarW, pillarH, tint);
   doc.addImage(pillarImg, pillarFormat, rightPillarX, rightPillarY, pillarW, pillarH);
   paintRect(doc, rightPillarX, rightPillarY, pillarW, pillarH, tint);
 
-  // Отрисовка панелей
   let currentBottom = segmentBottomY;
   for (const row of rows) {
     const panelPath = getPanelImagePath(row);
@@ -241,16 +234,15 @@ async function drawSegmentBody(
     currentBottom -= rowH;
   }
 
-  // Отрисовка человека (если загрузился)
   if (personImgBase64) {
     const personX = segmentBoxX + segmentBoxW + gapPerson;
-    const personY = segmentBottomY - personH; // Стоит на одном уровне с забором
+    const personY = segmentBottomY - personH;
     doc.addImage(personImgBase64, 'PNG', personX, personY, personW, personH);
   }
 
-  // --- Рамка для 2D-плана (На всю ширину страницы, высота уменьшена) ---
+  // --- Рамка для 2D-плана ---
   const frameY = boxY + boxH + 8;
-  const frameH = 75; // Уменьшено с 95
+  const frameH = 75; 
   const fullWidth = pageW - margin * 2;
   
   if (layoutImageBase64) {
@@ -284,8 +276,7 @@ async function drawSegmentBody(
     }
   }
 
-  // --- Текст под планом (3 строки) ---
-  // --- Текст под планом (Абзац с переносом строк) ---
+  // --- Текст под планом ---
   const textUnderPlanY = frameY + frameH + 6;
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
@@ -293,20 +284,12 @@ async function drawSegmentBody(
 
   const planLine1 = t('planDescription1' as TranslationKey) || 'Important layout information and mounting details. Please verify dimensions and boundary points carefully. Final execution may slightly vary depending on terrain.';
 
-  // Вычисляем максимально доступную ширину для текста (ширина страницы минус два марджина)
   const maxTextWidth = pageW - margin * 2;
-  
-  // Разбиваем текст на массив строк, чтобы он поместился в maxTextWidth
   const splitText = doc.splitTextToSize(planLine1, maxTextWidth);
-  
-  // Выводим получившийся массив (jsPDF сам расставит переносы)
   doc.text(splitText, margin, textUnderPlanY);
 
-  // Считаем высоту получившегося текстового блока (примерно 4 юнита на каждую строку при 8 размере шрифта)
   const textBlockHeight = splitText.length * 4;
 
-  // --- Итоговый текст в самом низу страницы ---
-  // Сдвигаем инфо-блок динамически, отступая от конца текстового блока
   const infoY = textUnderPlanY + textBlockHeight + 8;
   
   doc.setFont('helvetica', 'bold');
@@ -317,7 +300,6 @@ async function drawSegmentBody(
   doc.text(`${t('quotationWeight').toUpperCase()}: ${price.totalWeightKg} kg`, margin, infoY + 5);
   doc.text(`SEGMENTS: ${segmentCount}`, margin, infoY + 10);
 
-  // Условия (Terms and conditions)
   const termsY = infoY + 17;
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
@@ -329,16 +311,31 @@ async function drawSegmentBody(
   doc.textWithLink(termsUrl, margin + doc.getTextWidth(`${t('quotationTerms')}: `) + 1, termsY, { url: termsUrl });
 }
 
-function drawFooter(
+async function drawFooter(
   doc: jsPDF,
   pageW: number,
   pageH: number,
   margin: number,
   t: (key: TranslationKey) => string
 ) {
+  // --- QR-код (справа снизу) ---
+  try {
+    const qrBase64 = await imageUrlToBase64('/qr.png');
+    const qrSize = 18;
+    const qrX = pageW - margin - qrSize;
+    const qrY = pageH - 14 - 4 - qrSize; 
+    doc.addImage(qrBase64, 'PNG', qrX, qrY, qrSize, qrSize);
+  } catch (err) {
+    console.warn('Could not load qr.png', err);
+  }
+
   const website = 'https://euromuro.eu';
   const email = 'info@euromuro.eu';
   const vat = 'PT517982480';
+  
+  // Достаем оба номера
+  const phone = t('phoneNumber' as TranslationKey);
+  const phoneEs = t('phoneNumberEs' as TranslationKey);
 
   doc.setDrawColor(MID_GRAY);
   doc.setLineWidth(0.3);
@@ -350,6 +347,7 @@ function drawFooter(
 
   let x = margin;
 
+  // Website
   doc.setTextColor(BRAND_RED);
   doc.textWithLink(website, x, footerY, { url: website });
   x += doc.getTextWidth(website) + 4;
@@ -358,6 +356,7 @@ function drawFooter(
   doc.text('|', x, footerY);
   x += 4;
 
+  // Email
   doc.setTextColor(BRAND_RED);
   doc.textWithLink(email, x, footerY, { url: `mailto:${email}` });
   x += doc.getTextWidth(email) + 4;
@@ -366,6 +365,31 @@ function drawFooter(
   doc.text('|', x, footerY);
   x += 4;
 
+  // Phone 1
+  if (phone && phone !== 'phoneNumber') {
+    doc.setTextColor(BRAND_RED);
+    const phoneUrl = `tel:${phone.replace(/[^0-9+]/g, '')}`; 
+    doc.textWithLink(phone, x, footerY, { url: phoneUrl });
+    x += doc.getTextWidth(phone) + 4;
+
+    doc.setTextColor(150, 150, 150);
+    doc.text('|', x, footerY);
+    x += 4;
+  }
+
+  // Phone 2 (Spanish/Secondary)
+  if (phoneEs && phoneEs !== 'phoneNumberEs') {
+    doc.setTextColor(BRAND_RED);
+    const phoneUrlEs = `tel:${phoneEs.replace(/[^0-9+]/g, '')}`; 
+    doc.textWithLink(phoneEs, x, footerY, { url: phoneUrlEs });
+    x += doc.getTextWidth(phoneEs) + 4;
+
+    doc.setTextColor(150, 150, 150);
+    doc.text('|', x, footerY);
+    x += 4;
+  }
+
+  // VAT
   doc.setTextColor(150, 150, 150);
   doc.text(vat, x, footerY);
 

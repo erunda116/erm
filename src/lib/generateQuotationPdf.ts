@@ -407,6 +407,9 @@ export async function generateQuotationPdf(data: QuotationData): Promise<void> {
   const email = 'info@euromuro.eu';
   const vat = 'PT517982480';
 
+  const phone = safe(t('phoneNumber' as TranslationKey));
+  const phoneEs = safe(t('phoneNumberEs' as TranslationKey));
+
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7.5);
 
@@ -427,6 +430,30 @@ export async function generateQuotationPdf(data: QuotationData): Promise<void> {
   doc.setTextColor(150, 150, 150);
   doc.text('|', x, footerY);
   x += 4;
+
+if (phone) {
+    doc.setTextColor(BRAND_RED);
+    // Делаем телефон кликабельным через tel: (очищаем от пробелов для ссылки)
+    const phoneUrl = `tel:${phone.replace(/[^0-9+]/g, '')}`; 
+    doc.textWithLink(phone, x, footerY, { url: phoneUrl });
+    x += doc.getTextWidth(phone) + 4;
+
+    doc.setTextColor(150, 150, 150);
+    doc.text('|', x, footerY);
+    x += 4;
+  }
+
+  if (phoneEs) {
+    doc.setTextColor(BRAND_RED);
+    // Делаем телефон кликабельным через tel: (очищаем от пробелов для ссылки)
+    const phoneUrlEs = `tel:${phone.replace(/[^0-9+]/g, '')}`; 
+    doc.textWithLink(phoneEs, x, footerY, { url: phoneUrlEs });
+    x += doc.getTextWidth(phoneEs) + 4;
+
+    doc.setTextColor(150, 150, 150);
+    doc.text('|', x, footerY);
+    x += 4;
+  }
 
   doc.setTextColor(150, 150, 150);
   doc.text(vat, x, footerY);
