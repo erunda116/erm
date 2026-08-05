@@ -15,6 +15,7 @@ const MID_GRAY = '#e8e8e8';
 const TAX_RATE = 0.23;
 
 type QuotationData = {
+  quoteNum: string; // <-- Now accepts the exact ID generated in Sidebar
   price: PriceSummary;
   pillar: PillarModel;
   rows: FenceRow[];
@@ -32,8 +33,10 @@ type QuotationData = {
   layoutImageBase64?: string;
 };
 
-export async function generateQuotationPdf(data: QuotationData): Promise<void> {
+// <-- Changed return type from void to Promise<string>
+export async function generateQuotationPdf(data: QuotationData): Promise<string> { 
   const {
+    quoteNum, // <-- Destructured from data payload
     price,
     pillar,
     rows,
@@ -141,8 +144,8 @@ export async function generateQuotationPdf(data: QuotationData): Promise<void> {
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(13);
   doc.setTextColor(BRAND_RED);
-  const quoteNum = `QUO-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 9000) + 1000)}`;
-  doc.text(`${t('quotationTitle')}  ${quoteNum}`, margin + 6, headerY + 7);
+  // <-- Uses the quoteNum passed into the function instead of generating a new one locally
+  doc.text(`${t('quotationTitle')}  ${quoteNum}`, margin + 6, headerY + 7); 
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8.5);
@@ -184,14 +187,13 @@ export async function generateQuotationPdf(data: QuotationData): Promise<void> {
   doc.text(t('quotationFenceConfig'), margin + 4, configY + 6);
 
   const heightLabel = `${fenceHeightCm} cm`;
-  const lengthLabel = `${price.totalLengthM} m`; // Added length calculation
+  const lengthLabel = `${price.totalLengthM} m`; 
   const colorLabel = selectedRalLabel
     ? `${selectedRalLabel} (${baseConcreteColor === 'white' ? t('quotationColorWhite') : t('quotationColorGrey')} + painting)`
     : baseConcreteColor === 'grey'
     ? t('quotationColorGrey')
     : t('quotationColorWhite');
 
-  // Included Length in the configuration display
   const configCols = [
     { label: safe(t('quotationLength')), value: safe(lengthLabel) },
     { label: safe(t('quotationHeight')), value: safe(heightLabel) },
@@ -299,7 +301,7 @@ export async function generateQuotationPdf(data: QuotationData): Promise<void> {
     },
     alternateRowStyles: { fillColor: '#f7fbf9' },
     columnStyles: {
-      0: { cellWidth: 76 },
+      0: { cellWidth: 74 },
       1: { cellWidth: 18, halign: 'center' },
       2: { cellWidth: 32, halign: 'center' },
       3: { cellWidth: 18, halign: 'center' },
@@ -307,16 +309,13 @@ export async function generateQuotationPdf(data: QuotationData): Promise<void> {
     },
   });
 
-  // Changed to `let` so we can adjust it if delivery disclaimer is added
   let afterTable = (doc as any).lastAutoTable.finalY + 6;
 
-  // New logic: Check for delivery and add the disclaimer
   if (deliveryCity && deliveryCost) {
     doc.setFont('helvetica', 'italic');
     doc.setFontSize(8);
     doc.setTextColor(BRAND_RED);
     
-    // Uses the new translation key with a fallback just in case it isn't in i18n yet
     const translationKeyRaw = t('quotationAutoDeliveryWarning' as TranslationKey);
     const warningText = `* ${translationKeyRaw === 'quotationAutoDeliveryWarning' 
       ? t('quotationDeliveryAdditional')
@@ -325,7 +324,6 @@ export async function generateQuotationPdf(data: QuotationData): Promise<void> {
     const lines = doc.splitTextToSize(warningText, pageW - margin * 2);
     doc.text(lines, margin, afterTable + 2);
     
-    // Push the total block down based on how many lines the disclaimer took
     afterTable += (lines.length * 4) + 4; 
   }
 
@@ -433,7 +431,6 @@ export async function generateQuotationPdf(data: QuotationData): Promise<void> {
 
 if (phone) {
     doc.setTextColor(BRAND_RED);
-    // Делаем телефон кликабельным через tel: (очищаем от пробелов для ссылки)
     const phoneUrl = `tel:${phone.replace(/[^0-9+]/g, '')}`; 
     doc.textWithLink(phone, x, footerY, { url: phoneUrl });
     x += doc.getTextWidth(phone) + 4;
@@ -445,7 +442,6 @@ if (phone) {
 
   if (phoneEs) {
     doc.setTextColor(BRAND_RED);
-    // Делаем телефон кликабельным через tel: (очищаем от пробелов для ссылки)
     const phoneUrlEs = `tel:${phone.replace(/[^0-9+]/g, '')}`; 
     doc.textWithLink(phoneEs, x, footerY, { url: phoneUrlEs });
     x += doc.getTextWidth(phoneEs) + 4;
@@ -484,7 +480,9 @@ if (phone) {
     layoutImageBase64,
   });
 
-  doc.save(`EuroMuro_Quotation_${quoteNum}.pdf`);
+  // <-- Changed to output raw Base64 data string instead of a browser file download
+  const dataUri = doc.output('datauristring');
+  return dataUri.split(',')[1];
 }
 
 async function imageUrlToBase64(url: string): Promise<string> {

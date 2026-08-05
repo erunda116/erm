@@ -78,7 +78,8 @@ async function drawHeader(
     logoW = imgProps.width * ratio;
     logoH = imgProps.height * ratio;
 
-    doc.addImage(logoBase64, imgProps.fileType || 'JPEG', margin, 10, logoW, logoH);
+    // Added alias 'LOGO' and 'FAST' compression
+    doc.addImage(logoBase64, imgProps.fileType || 'JPEG', margin, 10, logoW, logoH, 'LOGO', 'FAST');
   } catch {
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(16);
@@ -143,7 +144,7 @@ async function drawSegmentBody(
     translations[locale]?.[key] ?? translations.en?.[key] ?? key;
   const tint = getConcreteTint(baseConcreteColor, selectedRal);
 
-  // --- Заголовок Сегмента ---
+  // --- Segment Header ---
   const titleY = 44;
 
   doc.setFont('helvetica', 'bold');
@@ -163,7 +164,7 @@ async function drawSegmentBody(
   doc.setTextColor(BRAND_RED);
   doc.text(`x ${segmentCount}`, pageW - margin, titleY + 2, { align: 'right' });
 
-  // --- Загрузка человека и расчет пропорций ---
+  // --- Person and Proportions ---
   let personImgBase64 = '';
   let personW = 0;
   let personH = 0;
@@ -182,7 +183,7 @@ async function drawSegmentBody(
     console.warn('Could not add person.png to PDF:', err);
   }
 
-  // --- Узкая рамка Сегмента ---
+  // --- Segment Frame ---
   const segmentBoxW = 130; 
   const gapPerson = 8; 
   
@@ -216,9 +217,10 @@ async function drawSegmentBody(
   const rightPillarX = panelX + panelW;
   const rightPillarY = leftPillarY;
 
-  doc.addImage(pillarImg, pillarFormat, leftPillarX, leftPillarY, pillarW, pillarH);
+  // Added alias (pillarPath) to ensure jsPDF only embeds the pillar once!
+  doc.addImage(pillarImg, pillarFormat, leftPillarX, leftPillarY, pillarW, pillarH, pillarPath, 'FAST');
   paintRect(doc, leftPillarX, leftPillarY, pillarW, pillarH, tint);
-  doc.addImage(pillarImg, pillarFormat, rightPillarX, rightPillarY, pillarW, pillarH);
+  doc.addImage(pillarImg, pillarFormat, rightPillarX, rightPillarY, pillarW, pillarH, pillarPath, 'FAST');
   paintRect(doc, rightPillarX, rightPillarY, pillarW, pillarH, tint);
 
   let currentBottom = segmentBottomY;
@@ -228,19 +230,18 @@ async function drawSegmentBody(
     const panelFormat = getImageFormatFromPath(panelPath);
     const rowH = (row.heightCm / totalCm) * panelTotalH;
 
-    doc.addImage(panelImg, panelFormat, panelX, currentBottom - rowH, panelW, rowH);
+    // Added alias (panelPath) so repeated panels don't inflate the file size!
+    doc.addImage(panelImg, panelFormat, panelX, currentBottom - rowH, panelW, rowH, panelPath, 'FAST');
     paintRect(doc, panelX, currentBottom - rowH, panelW, rowH, tint);
 
     currentBottom -= rowH;
   }
 
   if (personImgBase64) {
-    const personX = segmentBoxX + segmentBoxW + gapPerson;
-    const personY = segmentBottomY - personH;
-    doc.addImage(personImgBase64, 'PNG', personX, personY, personW, personH);
+    doc.addImage(personImgBase64, 'PNG', segmentBoxX + segmentBoxW + gapPerson, segmentBottomY - personH, personW, personH, 'PERSON', 'FAST');
   }
 
-  // --- Рамка для 2D-плана ---
+  // --- 2D Layout Frame ---
   const frameY = boxY + boxH + 8;
   const frameH = 75; 
   const fullWidth = pageW - margin * 2;
@@ -270,13 +271,14 @@ async function drawSegmentBody(
       const imgX = margin + (fullWidth - finalW) / 2;
       const imgY = frameY + (frameH - finalH) / 2;
       
-      doc.addImage(layoutImageBase64, imgProps.fileType || 'PNG', imgX, imgY, finalW, finalH);
+      // Defaulting to JPEG and using FAST compression
+      doc.addImage(layoutImageBase64, imgProps.fileType || 'JPEG', imgX, imgY, finalW, finalH, '3D_LAYOUT', 'FAST');
     } catch (err) {
       console.warn('Could not add 2D layout image to PDF:', err);
     }
   }
 
-  // --- Текст под планом ---
+  // --- Footer Text ---
   const textUnderPlanY = frameY + frameH + 6;
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
@@ -289,7 +291,6 @@ async function drawSegmentBody(
   doc.text(splitText, margin, textUnderPlanY);
 
   const textBlockHeight = splitText.length * 4;
-
   const infoY = textUnderPlanY + textBlockHeight + 8;
   
   doc.setFont('helvetica', 'bold');
@@ -318,13 +319,13 @@ async function drawFooter(
   margin: number,
   t: (key: TranslationKey) => string
 ) {
-  // --- QR-код (справа снизу) ---
   try {
     const qrBase64 = await imageUrlToBase64('/qr.png');
     const qrSize = 18;
     const qrX = pageW - margin - qrSize;
     const qrY = pageH - 14 - 4 - qrSize; 
-    doc.addImage(qrBase64, 'PNG', qrX, qrY, qrSize, qrSize);
+    // Added alias and FAST compression
+    doc.addImage(qrBase64, 'PNG', qrX, qrY, qrSize, qrSize, 'QR_CODE', 'FAST');
   } catch (err) {
     console.warn('Could not load qr.png', err);
   }
@@ -333,7 +334,6 @@ async function drawFooter(
   const email = 'info@euromuro.eu';
   const vat = 'PT517982480';
   
-  // Достаем оба номера
   const phone = t('phoneNumber' as TranslationKey);
   const phoneEs = t('phoneNumberEs' as TranslationKey);
 
@@ -347,7 +347,6 @@ async function drawFooter(
 
   let x = margin;
 
-  // Website
   doc.setTextColor(BRAND_RED);
   doc.textWithLink(website, x, footerY, { url: website });
   x += doc.getTextWidth(website) + 4;
@@ -356,7 +355,6 @@ async function drawFooter(
   doc.text('|', x, footerY);
   x += 4;
 
-  // Email
   doc.setTextColor(BRAND_RED);
   doc.textWithLink(email, x, footerY, { url: `mailto:${email}` });
   x += doc.getTextWidth(email) + 4;
@@ -365,31 +363,26 @@ async function drawFooter(
   doc.text('|', x, footerY);
   x += 4;
 
-  // Phone 1
   if (phone && phone !== 'phoneNumber') {
     doc.setTextColor(BRAND_RED);
     const phoneUrl = `tel:${phone.replace(/[^0-9+]/g, '')}`; 
     doc.textWithLink(phone, x, footerY, { url: phoneUrl });
     x += doc.getTextWidth(phone) + 4;
-
     doc.setTextColor(150, 150, 150);
     doc.text('|', x, footerY);
     x += 4;
   }
 
-  // Phone 2 (Spanish/Secondary)
   if (phoneEs && phoneEs !== 'phoneNumberEs') {
     doc.setTextColor(BRAND_RED);
     const phoneUrlEs = `tel:${phoneEs.replace(/[^0-9+]/g, '')}`; 
     doc.textWithLink(phoneEs, x, footerY, { url: phoneUrlEs });
     x += doc.getTextWidth(phoneEs) + 4;
-
     doc.setTextColor(150, 150, 150);
     doc.text('|', x, footerY);
     x += 4;
   }
 
-  // VAT
   doc.setTextColor(150, 150, 150);
   doc.text(vat, x, footerY);
 

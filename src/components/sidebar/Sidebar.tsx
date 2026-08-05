@@ -16,8 +16,8 @@ import { searchCities, roadDistanceKm, calcDelivery, getTruckCount } from '../..
 import type { CityResult } from '../../lib/delivery';
 import { useT } from '../../lib/i18n';
 import TourGuide from '../ui/TourGuide';
-import type { Locale } from '../../lib/i18n';
 import { createPortal } from "react-dom";
+import LeadCapturePopup from '../ui/LeadCapturePopup';
 
 
 
@@ -48,7 +48,7 @@ const deliveryCost = useDesignerStore((s) => s.deliveryCost);
 const deliveryDistanceKm = useDesignerStore((s) => s.deliveryDistanceKm);
 const setDeliveryCity = useDesignerStore((s) => s.setDeliveryCity);
 const layoutImageBase64 = useDesignerStore((s) => s.layoutImageBase64); // <--- ДОБАВИТЬ ЭТО
- 
+ const [leadPopupData, setLeadPopupData] = useState<{webhookPayload: any, pdfConfig: any} | null>(null);
 
   const price = calcPrice(
   fenceItems,
@@ -228,26 +228,60 @@ const selectedRalItem = RAL_COLORS.find((ral) => ral.hex === selectedRal);
                 style={{ padding: "8px", borderRadius: 6, border: "none", cursor: "pointer", background: "#d3001b", color: "#fff", fontWeight: 700, fontSize: 12 }}
                 
                 // ─── ИЗМЕНЕНО: Кнопка скачивания PDF теперь асинхронная и берет скриншот ───
-                onClick={async () => {
+               onClick={() => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const uniqueId = String(Math.floor(Math.random() * 9000) + 1000); 
+  const generatedQuoteNum = `QUO-${year}-${month}-${uniqueId}`;
 
-                  
-                  generateQuotationPdf({
-    price,
-    pillar: activePillar,
-    rows,
-    fenceHeightCm,
-    baseConcreteColor,
-    selectedRal: selectedRal ?? undefined,
-    selectedRalLabel: selectedRalItem?.label ?? undefined,
-    panelOrientation,
-    deliveryCity,
-    deliveryDistanceKm,
+  const webhookPayload = {
+    quoteId: generatedQuoteNum,
+    timestamp: now.toISOString(),
+    customerLocale: locale,
+    dimensions: { 
+      heightCm: fenceHeightCm, 
+      totalLengthM: price.totalLengthM 
+    },
+    configuration: {
+      baseColor: baseConcreteColor, 
+      ralColor: selectedRal ?? null,
+      panelOrientation: panelOrientation, 
+      pillarStyle: activePillar.style,
+      isSingleModel: singleModel, // Helpful flag for your CRM
+      
+      // 1. ADDED: Array of the exact panel names actively used in the quote
+      panels: price.rowBreakdown
+        .filter(row => row.count > 0)
+        .map(row => row.label)
+    },
+    
+    // 2. ADDED: Dedicated delivery block
+    delivery: {
+      city: deliveryCity?.displayName ?? null,
+      distanceKm: deliveryDistanceKm,
+      trucksNeeded: deliveryCity ? getTruckCount(price.totalWeightKg) : 0
+    },
+    
+    financials: {
+      subtotal: price.total, 
+      deliveryCost: deliveryCost,
+      estimatedTotal: Math.round((price.total + deliveryCost) * 1.23 * 100) / 100
+    }
+  };
+
+  const pdfConfig = {
+    quoteNum: generatedQuoteNum,
+    price, pillar: activePillar, rows, fenceHeightCm, baseConcreteColor,
+    selectedRal: selectedRal ?? undefined, selectedRalLabel: selectedRalItem?.label ?? undefined,
+    panelOrientation, deliveryCity, deliveryDistanceKm,
     deliveryTrucks: deliveryCity ? getTruckCount(price.totalWeightKg) : 0,
-    deliveryCost,
-    locale,
-    layoutImageBase64: layoutImageBase64 // <--- Теперь берется прямо из памяти!
-  });
-                }}
+    deliveryCost, locale, layoutImageBase64: layoutImageBase64
+  };
+
+  // ONLY show the popup. No download happens here anymore.
+  setLeadPopupData({ webhookPayload, pdfConfig });
+}}
                 // ──────────────────────────────────────────────────────────────────────────
               >
                 {t('downloadPdf')}
@@ -301,6 +335,17 @@ const selectedRalItem = RAL_COLORS.find((ral) => ral.hex === selectedRal);
   <RowsPopup onClose={() => setRowsPopupOpen(false)} />,
   document.body
 )}
+{/* Add the Lead Capture Portal here */}
+      {leadPopupData && createPortal(
+        <LeadCapturePopup 
+          webhookPayload={leadPopupData.webhookPayload} 
+          onGeneratePdf={async () => { // <-- Matches the new prop name!
+            return await generateQuotationPdf(leadPopupData.pdfConfig);
+          }}
+          onClose={() => setLeadPopupData(null)} 
+        />,
+        document.body
+      )}
 
     </div>
   );
