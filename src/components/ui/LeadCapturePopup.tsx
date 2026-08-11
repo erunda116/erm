@@ -81,6 +81,21 @@ export default function LeadCapturePopup({ webhookPayload, onGeneratePdf, onClos
   // Derive the active country object on the fly for the UI
   const activeCountry = translatedCountries.find(c => c.code === selectedCountryCode) || translatedCountries[0];
 
+const getTrackingData = () => {
+  const params = new URLSearchParams(window.location.search);
+
+  return {
+    utm_source: params.get('utm_source') || '',
+    utm_medium: params.get('utm_medium') || '',
+    utm_campaign: params.get('utm_campaign') || '',
+    utm_content: params.get('utm_content') || '',
+    utm_term: params.get('utm_term') || '',
+    gclid: params.get('gclid') || '',
+    gbraid: params.get('gbraid') || '',
+    wbraid: params.get('wbraid') || ''
+  };
+};
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -90,19 +105,25 @@ export default function LeadCapturePopup({ webhookPayload, onGeneratePdf, onClos
       const base64Pdf = await onGeneratePdf(); 
 
       // 2. Attach the customer data AND the PDF file to the payload
-      const finalPayload = {
-        ...webhookPayload,
-        customer: { 
-          name: name.trim(), 
-          email: email.trim(), 
-          phone: `${activeCountry.code} ${phoneNumber.trim()}`
-        },
-        fileData: {
-          filename: `${webhookPayload.quoteId}.pdf`,
-          mimeType: 'application/pdf',
-          base64: base64Pdf
-        }
-      };
+      const trackingData = getTrackingData();
+
+const finalPayload = {
+  ...webhookPayload,
+
+  customer: { 
+    name: name.trim(), 
+    email: email.trim(), 
+    phone: `${activeCountry.code} ${phoneNumber.trim()}`
+  },
+
+  tracking: trackingData,
+
+  fileData: {
+    filename: `${webhookPayload.quoteId}.pdf`,
+    mimeType: 'application/pdf',
+    base64: base64Pdf
+  }
+};
 
       // 3. Send everything to n8n
       const response = await fetch('https://n8n.euromuro.eu/webhook/569b8abb-3c06-428d-8de4-8fc99a7d2944', {
