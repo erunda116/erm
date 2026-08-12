@@ -79,8 +79,8 @@ export const PANEL_MODELS: PanelModel[] = [
     modelPath: "/models/panels/HeritageStone500.glb",
     imagePath: "/images/panels/heritage500.jpg",
     heightCm: 50,
-    priceGrey: 25,   // ← было price: 30
-    priceWhite: 33,  //
+    priceGrey: 29,   // ← было price: 30
+    priceWhite: 37,  //
     side: 'one',
     weightKgPerPanel: 75,
     reference: "ERM.F.0703",
