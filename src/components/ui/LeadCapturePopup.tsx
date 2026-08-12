@@ -135,6 +135,13 @@ const finalPayload = {
       if (!response.ok) {
         throw new Error(`Webhook failed! HTTP Status: ${response.status}`);
       }
+
+      window.parent.postMessage(
+  {
+    type: 'euromuro_calculator_lead'
+  },
+  'https://euromuro.eu'
+);
       
       setIsSubmitted(true);
     } catch (error) {
