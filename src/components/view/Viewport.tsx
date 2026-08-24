@@ -47,17 +47,18 @@ export default function Viewport() {
             <>
               <div className="viewport-toolbar-divider" />
 
-              {(["fence", "house"] as const).map((tool) => (
+              {/* ДОБАВЛЕН ИНСТРУМЕНТ GATE */}
+              {(["fence", "house", "gate"] as const).map((tool) => (
                 <button
                   key={tool}
-                  id={tool === "fence" ? "tour-fence-btn" : "tour-building-btn"}
+                  id={`tour-${tool}-btn`}
                   onClick={() => setActiveTool(tool)}
                   className={`viewport-btn viewport-btn--tool ${
                     activeTool === tool ? "is-active is-active-red" : ""
                   }`}
                   type="button"
                 >
-                  {tool === "fence" ? t("toolFence") : t("toolBuilding")}
+                  {tool === "fence" ? t("toolFence") : tool === "house" ? t("toolBuilding") : t("toolGate")}
                 </button>
               ))}
             </>

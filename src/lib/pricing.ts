@@ -29,7 +29,8 @@ export function calcPrice(
   const panels = items.filter((i) => i.type === "panel");
   const postCount = items.filter((i) => i.type === "post").length;
 
-  const byModel = new Map<string, { label: string; price: number; count: number; totalM2: number }>();
+  // Теперь храним цену за ШТУКУ и количество ШТУК
+  const byModel = new Map<string, { label: string; pricePerUnit: number; count: number }>();
 
   let paintedAreaM2 = 0;
 
@@ -38,31 +39,37 @@ export function calcPrice(
     if (!row) return;
 
     const key = row.panel.id;
-    const pricePerM2 = isWhite ? row.panel.priceWhite : row.panel.priceGrey;
-    const panelHeightM = row.panel.heightCm / 100;
-    const widthRatio = item.widthRatio ?? 1;
-    const panelM2 = panelHeightM * 2 * widthRatio;
-
+    
+    // Цена берется напрямую из панели (это цена за 1 шт.)
+    const pricePerUnit = isWhite ? row.panel.priceWhite : row.panel.priceGrey;
+    
     if (!byModel.has(key)) {
       byModel.set(key, {
         label: row.panel.label,
-        price: pricePerM2,
+        pricePerUnit: pricePerUnit,
         count: 0,
-        totalM2: 0,
       });
     }
 
     const entry = byModel.get(key)!;
+    // Любой кусок панели считается как 1 целая панель
     entry.count++;
-    entry.totalM2 += panelM2;
+
+    // Площадь считаем для покраски (тут учитываем обрезку widthRatio, 
+    // если красится только фактическая площадь, а не полная панель)
+    const panelHeightM = row.panel.heightCm / 100;
+    const widthRatio = item.widthRatio ?? 1;
+    const panelM2 = panelHeightM * 2 * widthRatio; 
     paintedAreaM2 += panelM2;
   });
 
+  // Формируем breakdown по рядам (основываясь на количестве штук)
   const rowBreakdown = Array.from(byModel.values()).map((r) => ({
     label: r.label,
     count: r.count,
-    price: r.price,
-    total: Math.round(r.totalM2 * r.price * 100) / 100,
+    price: r.pricePerUnit,
+    // Считаем: Количество штук * Цена за штуку
+    total: Math.round(r.count * r.pricePerUnit * 100) / 100,
   }));
 
   const panelTotal = rowBreakdown.reduce((s, r) => s + r.total, 0);
@@ -70,19 +77,27 @@ export function calcPrice(
   const pillarPrice = isWhite ? pillar.priceWhite : pillar.price;
   const postTotal = postCount * pillarPrice;
 
+  // Длина забора
   const panelsRow0 = panels.filter((p) => (p.rowIndex ?? 0) === 0);
   const totalPanelWidths = panelsRow0.reduce((sum, p) => sum + (p.widthRatio ?? 1), 0);
   const totalLengthM = Math.round(totalPanelWidths * 2 * 10) / 10;
 
+  // Вес забора
   let totalWeightKg = 0;
   panels.forEach((item) => {
     const row = rows[item.rowIndex ?? 0] ?? rows[0];
     if (!row) return;
-    const widthRatio = item.widthRatio ?? 1;
-    totalWeightKg += (row.panel.weightKgPerPanel ?? 85) * widthRatio;
+    
+    // Если вес считается за обрезанный кусок:
+    totalWeightKg += (row.panel.weightKgPerPanel ?? 85);
+    
+    // Если вес должен считаться как за целую панель (даже обрезанную), 
+    // то замени 2 строки выше на:
+    // totalWeightKg += (row.panel.weightKgPerPanel ?? 85);
   });
   totalWeightKg = Math.round(totalWeightKg + postCount * (pillar.weightKg ?? 120));
 
+  // Покраска
   const paintingPricePerM2 = isWhite ? PAINTING_PRICE_WHITE : PAINTING_PRICE_GREY;
   const paintingTotal = selectedRal
     ? Math.round(paintedAreaM2 * paintingPricePerM2 * 100) / 100

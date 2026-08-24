@@ -42,16 +42,16 @@ export function roadDistanceKm(lat: number, lng: number): number {
 
 // Тариф за 1 машину (до 20 000 кг) по зоне расстояния
 export function getDeliveryRatePerTruck(distanceKm: number): number {
-  if (distanceKm <= 100) return 550;
-  if (distanceKm <= 200) return 650;
-  if (distanceKm <= 300) return 800;
-  if (distanceKm <= 400) return 750;
-  if (distanceKm <= 500) return 1250;
+  if (distanceKm <= 100) return 750;
+  if (distanceKm <= 200) return 850;
+  if (distanceKm <= 300) return 1000;
+  if (distanceKm <= 400) return 950;
+  if (distanceKm <= 500) return 1450;
 
   // Для расстояний свыше 500 км:
   // пока используем последний известный тариф.
   // При желании позже можно добавить новые зоны.
-  return 1250;
+  return 1450;
 }
 
 // Сколько машин нужно для веса

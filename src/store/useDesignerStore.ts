@@ -8,6 +8,15 @@ import type { PillarModel, PillarStyle } from "../data/posts";
 import type { CityResult } from '../lib/delivery';
 import type { Locale } from '../lib/i18n';
 
+// ДОБАВЛЕН ТИП GATE
+export type Gate = {
+  id: string;
+  x: number;
+  z: number;
+  widthPx: number;
+  rotation: number;
+};
+
 export type { Point, FenceItem, House };
 
 export type FenceRow = {
@@ -20,23 +29,15 @@ export const FENCE_HEIGHTS_CM = [
   150, 160, 180, 190, 200, 210, 220, 230, 240, 250,
 ];
 
-// Какие панели влезают в оставшуюся высоту И после которых остаток набираем
 export function getAvailablePanels(remainingCm: number, isTopRow: boolean = false): PanelModel[] {
-  // Панели которые физически помещаются
   const fits = PANEL_MODELS.filter((p) => p.heightCm <= remainingCm);
-
-  // Обычные (не topOnly) панели — показываем если после них остаток достижим
   const regular = fits.filter((p) => {
     if (p.topOnly) return false;
     return canReach(remainingCm - p.heightCm);
   });
-
-  // topOnly панели — показываем ТОЛЬКО если они точно закрывают остаток целиком
-  // (т.е. это действительно последний ряд) И isTopRow = true
   const topPanels = isTopRow
     ? fits.filter((p) => p.topOnly && p.heightCm === remainingCm)
     : [];
-
   return [...regular, ...topPanels];
 }
 
@@ -58,7 +59,6 @@ export function getFilledHeight(rows: FenceRow[]): number {
   return rows.reduce((s, r) => s + r.heightCm, 0);
 }
 
-
 function makeRows(heightCm: number, panel: PanelModel): FenceRow[] {
   const count = Math.round(heightCm / panel.heightCm);
   return Array.from({ length: count }, () => ({ heightCm: panel.heightCm, panel }));
@@ -72,14 +72,9 @@ function getDefaultSinglePanel(heightCm: number): PanelModel {
 const DEFAULT_HEIGHT = 150;
 
 type DesignerStore = {
-  // Забор
   boundaryPoints: Point[];
   fenceItems: FenceItem[];
-
-  // Высота
   fenceHeightCm: number;
-
-  // Панели
   singleModel: boolean;
   singlePanel: PanelModel;
   filledRows: FenceRow[];
@@ -98,13 +93,11 @@ type DesignerStore = {
   deliveryCost: number;
   setDeliveryCity: (city: CityResult | null, distanceKm: number, cost: number) => void;
   
-  // color
   baseConcreteColor: 'grey' | 'white';
   selectedRal: string | null;
   setBaseConcreteColor: (color: 'grey' | 'white') => void;
   setSelectedRal: (ral: string | null) => void;
 
-  // Пиллар
   selectedPillarStyle: PillarStyle;
   activePillar: PillarModel;
 
@@ -113,18 +106,20 @@ type DesignerStore = {
   groundType: 'grass' | 'calcada' | 'ground' | 'grid';
   setGroundType: (v: 'grass' | 'calcada' | 'ground' | 'grid') => void;
 
-  // Дома
+  hasIncline: boolean;
+  setHasIncline: (v: boolean) => void;
+
   houses: House[];
+  
+  // ДОБАВЛЕНЫ ВОРОТА
+  gates: Gate[];
+  activeTool: "fence" | "house" | "gate"; // ОБНОВЛЕНО
+  addGate: (x: number, z: number, widthPx: number, rotation: number) => void;
+  removeGate: (id: string) => void;
 
-  // Инструмент
-  activeTool: "fence" | "house";
-
-  // ─── ДОБАВЛЕНО ДЛЯ PDF ────────────────────────────
   layoutImageBase64: string | undefined;
   setLayoutImageBase64: (img: string | undefined) => void;
-  // ──────────────────────────────────────────────────
 
-  // Actions — забор
   addPoint: (p: Point) => void;
   setFenceHeight: (cm: number) => void;
   setSingleModel: (val: boolean) => void;
@@ -135,8 +130,7 @@ type DesignerStore = {
   rebuildFence: () => void;
   clearAll: () => void;
 
-  // Actions — дома
-  setActiveTool: (tool: "fence" | "house") => void;
+  setActiveTool: (tool: "fence" | "house" | "gate") => void; // ОБНОВЛЕНО
   addHouse: (x: number, z: number) => void;
   updateHouse: (id: string, patch: Partial<House>) => void;
   removeHouse: (id: string) => void;
@@ -154,6 +148,7 @@ export const useDesignerStore = create<DesignerStore>((set, get) => ({
   activePillar: getCompatiblePillar("smooth", DEFAULT_HEIGHT),
   panelOrientation: 'outward',
   houses: [],
+  gates: [], // ИНИЦИАЛИЗАЦИЯ
   activeTool: "fence",
   setPanelOrientation: (v) => set({ panelOrientation: v }),
   baseConcreteColor: 'grey',
@@ -172,17 +167,14 @@ export const useDesignerStore = create<DesignerStore>((set, get) => ({
   deliveryDistanceKm: 0,
   deliveryCost: 0,
   locale: 'en',
+  hasIncline: false,
+  setHasIncline: (v) => set({ hasIncline: v }),
 
-  // ─── ДОБАВЛЕНО ДЛЯ PDF ────────────────────────────
   layoutImageBase64: undefined,
   setLayoutImageBase64: (img) => set({ layoutImageBase64: img }),
-  // ──────────────────────────────────────────────────
-
-  // ─── Забор ────────────────────────────────────────────────────────────────
 
   addPoint: (p) => set((s) => ({ boundaryPoints: [...s.boundaryPoints, p] })),
   
-  // Delivery
   setDeliveryCity: (city: CityResult | null, distanceKm: number, cost: number) =>
     set({
       deliveryCity: city,
@@ -252,10 +244,9 @@ export const useDesignerStore = create<DesignerStore>((set, get) => ({
   },
 
   rebuildFence: () => {
-    const { boundaryPoints, fenceHeightCm, rows, singleModel, singlePanel, houses } = get();
+    const { boundaryPoints, fenceHeightCm, rows, singleModel, singlePanel, houses, gates } = get(); // ДОБАВЛЕНО GATES
     if (boundaryPoints.length < 2) { set({ fenceItems: [] }); return; }
 
-    // ← singleModel всегда строит из singlePanel, не требует заполненных rows
     const activeRows = singleModel
       ? makeRows(fenceHeightCm, singlePanel)
       : rows;
@@ -264,8 +255,9 @@ export const useDesignerStore = create<DesignerStore>((set, get) => ({
 
     const rowHeightsCm = activeRows.map((r) => r.heightCm);
     set({
-      fenceItems: buildFence(boundaryPoints, fenceHeightCm / 100, rowHeightsCm, houses),
-      rows: activeRows, // ← сохраняем актуальные rows в стор
+      // ПЕРЕДАЕМ GATES ПЯТЫМ АРГУМЕНТОМ
+      fenceItems: buildFence(boundaryPoints, fenceHeightCm / 100, rowHeightsCm, houses, gates),
+      rows: activeRows,
     });
   },
 
@@ -275,15 +267,14 @@ export const useDesignerStore = create<DesignerStore>((set, get) => ({
     filledRows: [],
     rows: [],
     houses: [],
+    gates: [], // ОЧИСТКА ВОРОТ
     baseConcreteColor: 'grey',
     selectedRal: null,
     deliveryCity: null,
     deliveryDistanceKm: 0,
     deliveryCost: 0,
-    layoutImageBase64: undefined, // Очищаем картинку при сбросе
+    layoutImageBase64: undefined,
   }),
-
-  // ─── Дома ─────────────────────────────────────────────────────────────────
 
   setActiveTool: (tool) => set({ activeTool: tool }),
 
@@ -306,6 +297,19 @@ export const useDesignerStore = create<DesignerStore>((set, get) => ({
 
   removeHouse: (id) => {
     set((s) => ({ houses: s.houses.filter((h) => h.id !== id) }));
+    get().rebuildFence();
+  },
+
+  // МЕТОДЫ УПРАВЛЕНИЯ ВОРОТАМИ
+  addGate: (x, z, widthPx, rotation) => {
+    set((s) => ({
+      gates: [...s.gates, { id: crypto.randomUUID(), x, z, widthPx, rotation }],
+    }));
+    get().rebuildFence();
+  },
+
+  removeGate: (id) => {
+    set((s) => ({ gates: s.gates.filter((g) => g.id !== id) }));
     get().rebuildFence();
   },
 }));

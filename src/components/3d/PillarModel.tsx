@@ -10,26 +10,17 @@ type Props = {
   position?: [number, number, number];
   rotation?: [number, number, number];
   panelOrientation?: "outward" | "inward";
-
+  extraBurial?: number; 
   ralControls?: {
-    hue?: number;
-    saturation?: number;
-    lightness?: number;
-    opacity?: number;
-    emissiveIntensity?: number;
-    emissiveBoost?: number;
-    metalness?: number;
-    roughness?: number;
+    hue?: number; saturation?: number; lightness?: number; opacity?: number;
+    emissiveIntensity?: number; emissiveBoost?: number; metalness?: number; roughness?: number;
   };
 };
 
 export default function PillarModel({
-  modelPath,
-  burialM,
-  fenceHeightM,
-  position = [0, 0, 0],
-  rotation = [0, 0, 0],
-  panelOrientation = "outward",
+  modelPath, burialM, fenceHeightM,
+  position = [0, 0, 0], rotation = [0, 0, 0],
+  panelOrientation = "outward", extraBurial = 0,
   ralControls = {},
 }: Props) {
   const model = useGLTF(modelPath);
@@ -39,103 +30,64 @@ export default function PillarModel({
   const concreteColor = selectedRal ?? baseConcreteColor;
 
   const {
-    hue = 1,
-    saturation = 0.8,
-    lightness = 1,
-    opacity = 1,
-    emissiveIntensity = 1,
-    emissiveBoost = 0.2,
-    metalness = 0.05,
-    roughness = 0.9,
+    hue = 1, saturation = 0.8, lightness = 1, opacity = 1,
+    emissiveIntensity = 1, emissiveBoost = 0.2, metalness = 0.05, roughness = 0.9,
   } = ralControls;
 
-  const clippingPlanes = useMemo(
-    () => [
-      new THREE.Plane(new THREE.Vector3(0, 1, 0), 0),
-      new THREE.Plane(new THREE.Vector3(0, -1, 0), fenceHeightM),
-    ],
-    [fenceHeightM]
-  );
+  // The World Clipping Planes (cut flush with the highest panel top)
+  const topWorldY = position[1] + fenceHeightM + 0.005; // 5mm offset to prevent flickering against panel top
+  const bottomWorldY = position[1] - burialM - 0.1;
+
+  const clippingPlanes = useMemo(() => [
+      new THREE.Plane(new THREE.Vector3(0, 1, 0), -bottomWorldY), 
+      new THREE.Plane(new THREE.Vector3(0, -1, 0), topWorldY),   
+  ], [topWorldY, bottomWorldY]);
 
   const clonedScene = useMemo(() => {
     const clone = model.scene.clone(true);
-
     clone.traverse((obj) => {
       if (!(obj as THREE.Mesh).isMesh) return;
 
       const mesh = obj as THREE.Mesh;
-      const sourceMaterial = mesh.material as THREE.MeshStandardMaterial;
-      const mat = sourceMaterial.clone();
-
+      const mat = (mesh.material as THREE.MeshStandardMaterial).clone();
       mat.clippingPlanes = clippingPlanes;
       mat.clipShadows = true;
 
       if (concreteColor === "white") {
         mat.color = new THREE.Color("#ffffff");
         mat.emissive = new THREE.Color("#888888");
-        mat.emissiveIntensity = 0.9;
-        mat.transparent = false;
-        mat.opacity = 1;
+        mat.emissiveIntensity = 0.9; mat.transparent = false; mat.opacity = 1;
       } else if (concreteColor === "grey") {
-        // --- ДЕЛАЕМ СЕРЫЙ ТЕМНЕЕ ---
         mat.color = new THREE.Color("#c0c0c0");
       } else {
-        // Выполняется, если выбран RAL
         const base = new THREE.Color(concreteColor);
         const hsl = { h: 0, s: 0, l: 0 };
-
         base.getHSL(hsl);
-
         const nextH = (hsl.h + hue) % 1;
         const nextS = THREE.MathUtils.clamp(hsl.s * saturation, 0, 1);
         const nextL = THREE.MathUtils.clamp(hsl.l * lightness, 0, 1);
-
-        const finalColor = new THREE.Color().setHSL(
-          nextH < 0 ? nextH + 1 : nextH,
-          nextS,
-          nextL
-        );
-
-        mat.color = finalColor;
-        mat.emissive = finalColor.clone().multiplyScalar(emissiveBoost);
-        mat.emissiveIntensity = emissiveIntensity;
-        mat.transparent = opacity < 1;
-        mat.opacity = THREE.MathUtils.clamp(opacity, 0, 1);
-        mat.metalness = metalness;
-        mat.roughness = roughness;
+        const finalColor = new THREE.Color().setHSL(nextH < 0 ? nextH + 1 : nextH, nextS, nextL);
+        mat.color = finalColor; mat.emissive = finalColor.clone().multiplyScalar(emissiveBoost);
+        mat.emissiveIntensity = emissiveIntensity; mat.transparent = opacity < 1;
+        mat.opacity = THREE.MathUtils.clamp(opacity, 0, 1); mat.metalness = metalness; mat.roughness = roughness;
       }
-
       mat.needsUpdate = true;
       mesh.material = mat;
     });
-
     return clone;
-  }, [
-    model,
-    clippingPlanes,
-    concreteColor,
-    hue,
-    saturation,
-    lightness,
-    opacity,
-    emissiveIntensity,
-    emissiveBoost,
-    metalness,
-    roughness,
-  ]);
-
-  const modelRotationY =
-    panelOrientation === "inward" ? Math.PI : 0;
+  }, [model, clippingPlanes, concreteColor, hue, saturation, lightness, opacity, emissiveIntensity, emissiveBoost, metalness, roughness]);
 
   return (
-    <group
-      position={[position[0], position[1] - burialM, position[2]]}
-      rotation={rotation}
-    >
-      <primitive
-        object={clonedScene}
-        rotation={[0, modelRotationY, 0]}
-      />
+    <group position={[position[0], position[1] - burialM, position[2]]} rotation={rotation}>
+      <primitive object={clonedScene} rotation={[0, panelOrientation === "inward" ? Math.PI : 0, 0]} />
+      
+      {/* Extension block: Seamlessly fills the gap under the pillar without distorting your 3D model */}
+      {extraBurial > 0 && (
+        <mesh position={[0, -extraBurial / 2, 0]}>
+          <boxGeometry args={[0.15, extraBurial, 0.15]} />
+          <meshStandardMaterial color={concreteColor === 'white' ? '#d9d9d9' : '#a3a3a3'} />
+        </mesh>
+      )}
     </group>
   );
 }

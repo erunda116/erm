@@ -1,4 +1,6 @@
-export type Point = { x: number; y: number };
+import type { Gate } from "../store/useDesignerStore";
+
+export type Point = { x: number; y: number; elevation?: number };
 
 export type House = {
   id: string;
@@ -12,9 +14,10 @@ export type FenceItem = {
   rotation: number;
   rowIndex?: number;
   widthRatio?: number;
+  extraBurial?: number;
 };
 
-const PANEL_WIDTH_PX = 100; // 1 панель = 100px = 2м (50px/м)
+const PANEL_WIDTH_PX = 100; // 1 panel = 100px = 2m (50px/m)
 
 function dist(a: Point, b: Point) {
   return Math.hypot(b.x - a.x, b.y - a.y);
@@ -58,7 +61,7 @@ function segmentIntersectsHouse(a: Point, b: Point, house: House): boolean {
          segSeg(a, b, br, bl) || segSeg(a, b, bl, tl);
 }
 
-function splitSegmentAroundHouses(a: Point, b: Point, houses: House[]): [Point, Point][] {
+function splitSegmentAroundObstacles(a: Point, b: Point, houses: House[], gates: Gate[]): [Point, Point][] {
   const totalLen = dist(a, b);
   if (totalLen < 1) return [];
 
@@ -96,6 +99,27 @@ function splitSegmentAroundHouses(a: Point, b: Point, houses: House[]): [Point, 
     }
   }
 
+  for (const gate of gates) {
+    const r = gate.widthPx / 2;
+    const fx = a.x - gate.x;
+    const fy = a.y - gate.z;
+    const A = dx * dx + dy * dy;
+    const B = 2 * (fx * dx + fy * dy);
+    const C = (fx * fx + fy * fy) - r * r;
+    const discriminant = B * B - 4 * A * C;
+
+    if (discriminant > 0) {
+      const sqrtD = Math.sqrt(discriminant);
+      const t1 = (-B - sqrtD) / (2 * A);
+      const t2 = (-B + sqrtD) / (2 * A);
+      const tMin = Math.min(t1, t2);
+      const tMax = Math.max(t1, t2);
+      if (tMin < totalLen && tMax > 0) {
+        blocked.push({ tIn: Math.max(0, tMin), tOut: Math.min(totalLen, tMax) });
+      }
+    }
+  }
+
   if (blocked.length === 0) return [[a, b]];
 
   blocked.sort((x, y) => x.tIn - y.tIn);
@@ -128,7 +152,8 @@ export function buildFence(
   points: Point[],
   fenceHeightM: number,
   rowHeightsCm: number[],
-  houses: House[] = []
+  houses: House[] = [],
+  gates: Gate[] = []
 ): FenceItem[] {
   if (points.length < 2) return [];
 
@@ -138,84 +163,125 @@ export function buildFence(
     const a = points[i];
     const b = points[i + 1];
 
-    const subSegments = splitSegmentAroundHouses(a, b, houses);
+    const subSegments = splitSegmentAroundObstacles(a, b, houses, gates);
 
-    for (const [segA, segB] of subSegments) {
+    for (let segIdx = 0; segIdx < subSegments.length; segIdx++) {
+      const [segA, segB] = subSegments[segIdx];
       const totalLen = dist(segA, segB);
       const rot = angle(segA, segB);
       const dx = Math.cos(rot);
       const dz = Math.sin(rot);
 
-      let cursor = 0;
+      const mainSegmentLen = dist(a, b);
+      const distA = dist(a, segA);
+      const distB = dist(a, segB);
+      const elA = a.elevation || 0;
+      const elB = b.elevation || 0;
 
-      // START POST
+      const segElA = mainSegmentLen > 0 ? elA + (distA / mainSegmentLen) * (elB - elA) : elA;
+      const segElB = mainSegmentLen > 0 ? elA + (distB / mainSegmentLen) * (elB - elA) : elB;
+
+      let cursor = 0;
+      
+      const peekElEnd = totalLen > 0 ? segElA + (Math.min(PANEL_WIDTH_PX, totalLen) / totalLen) * (segElB - segElA) : segElA;
+      
+      // ИСПОЛЬЗУЕМ Math.max: панель прилегает к ВЫСШЕЙ точке рельефа
+      const firstPanelY = Math.max(segElA, peekElEnd); 
+
       result.push({
         type: "post",
-        x: segA.x, z: segA.y, y: 0,
+        x: segA.x, z: segA.y,
+        y: firstPanelY, 
         rotation: rot,
+        extraBurial: Math.max(0, firstPanelY - segElA)
       });
+
+      let prevPanelY = firstPanelY;
 
       while (cursor < totalLen) {
         const nextCursor = cursor + PANEL_WIDTH_PX;
+        const isLast = nextCursor >= totalLen;
 
-        if (nextCursor <= totalLen) {
-          // Полная панель — центр между cursor и nextCursor
+        const elStart = segElA + (cursor / totalLen) * (segElB - segElA);
+        const elEnd = segElA + (Math.min(nextCursor, totalLen) / totalLen) * (segElB - segElA);
+        
+        // Math.max: панель садится на землю ВЫСШИМ углом, чтобы быть полностью над землей
+        const panelY = Math.max(elStart, elEnd);
+
+        if (!isLast) {
           const panelCenterOffset = cursor + PANEL_WIDTH_PX / 2;
+          
           let rowY = 0;
           rowHeightsCm.forEach((h, rowIndex) => {
             result.push({
               type: "panel",
-              x: segA.x + dx * panelCenterOffset,
+              x: segA.x + dx * panelCenterOffset, 
               z: segA.y + dz * panelCenterOffset,
-              y: rowY / 100,
-              rotation: rot,
-              rowIndex,
+              y: panelY + (rowY / 100),
+              rotation: rot, rowIndex,
               widthRatio: 1,
             });
             rowY += h;
           });
 
           cursor = nextCursor;
+          prevPanelY = panelY;
 
-          // POST после панели
+          let nextPanelY = prevPanelY;
+          if (cursor < totalLen) {
+             const pNextCursor = Math.min(cursor + PANEL_WIDTH_PX, totalLen);
+             const pStart = segElA + (cursor / totalLen) * (segElB - segElA);
+             const pEnd = segElA + (pNextCursor / totalLen) * (segElB - segElA);
+             nextPanelY = Math.max(pStart, pEnd); 
+          }
+
+          const postY = Math.max(prevPanelY, nextPanelY);
+          const groundEl = segElA + (cursor / totalLen) * (segElB - segElA);
+
           result.push({
             type: "post",
-            x: segA.x + dx * cursor,
-            z: segA.y + dz * cursor,
-            y: 0,
-            rotation: rot,
+            x: segA.x + dx * cursor, z: segA.y + dz * cursor,
+            y: postY, rotation: rot,
+            extraBurial: Math.max(0, postY - groundEl) 
           });
         } else {
-          // Последняя неполная панель
           const remaining = totalLen - cursor;
           if (remaining > 5) {
             const panelCenterOffset = cursor + PANEL_WIDTH_PX / 2; 
+            
             let rowY = 0;
             rowHeightsCm.forEach((h, rowIndex) => {
               result.push({
                 type: "panel",
-                x: segA.x + dx * panelCenterOffset,
+                x: segA.x + dx * panelCenterOffset, 
                 z: segA.y + dz * panelCenterOffset,
-                y: rowY / 100,
-                rotation: rot,
-                rowIndex,
+                y: panelY + (rowY / 100),
+                rotation: rot, rowIndex,
                 widthRatio: remaining / PANEL_WIDTH_PX,
               });
               rowY += h;
             });
-          }
 
-          // END POST
-          result.push({
-            type: "post",
-            x: segB.x, z: segB.y, y: 0,
-            rotation: rot,
-          });
+            const postY = panelY; 
+            result.push({
+              type: "post",
+              x: segB.x, z: segB.y,
+              y: postY, rotation: rot,
+              extraBurial: Math.max(0, postY - segElB)
+            });
+          } else {
+            const postY = prevPanelY;
+            result.push({
+              type: "post",
+              x: segB.x, z: segB.y,
+              y: postY, rotation: rot,
+              extraBurial: Math.max(0, postY - segElB)
+            });
+          }
           break;
         }
       }
     }
   }
-
   return result;
 }

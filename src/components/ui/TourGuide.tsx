@@ -16,7 +16,8 @@ type WatchStoreKey =
   | "panelOrientation"
   | "activeTool"
   | "groundType"
-  | "concreteColorWatch";
+  | "concreteColorWatch"
+  | "hasIncline";
 
 type TourStep = {
   titleKey: string;
@@ -38,6 +39,16 @@ const BASE_STEPS: TourStep[] = [
     watchStore: "locale",
     overlay: true,
     mobileTab: "settings",
+  },
+  {
+    titleKey: "tourInclineTitle", // ключ перевода для заголовка
+    textKey: "tourInclineText",   // ключ перевода для описания
+    targetId: "inclineCheck",
+    placement: "right",
+    watchStore: "hasIncline",     // тур автоматически переключится дальше, когда пользователь нажмет чекбокс
+    overlay: true,
+    mobileTab: "settings",
+    mobilePlacement: "bottom",
   },
   {
     titleKey: "tourStep2Title",
@@ -290,6 +301,7 @@ export default function TourGuide() {
   const fenceItems = useDesignerStore((s) => s.fenceItems);
   const groundType = useDesignerStore((s) => s.groundType);
   const setRowsPopupOpen = useDesignerStore((s) => s.setRowsPopupOpen);
+  const hasIncline = useDesignerStore((s) => s.hasIncline);
 
   const concreteColorWatch = `${baseConcreteColor}-${selectedRal ?? "none"}`;
 
@@ -305,6 +317,7 @@ export default function TourGuide() {
     activeTool,
     concreteColorWatch,
     groundType,
+    hasIncline,
   };
 
   useEffect(() => {
@@ -453,6 +466,7 @@ export default function TourGuide() {
     concreteColorWatch,
     panelOrientation,
     activeTool,
+    hasIncline,
   ]);
 
   // Layout calculation

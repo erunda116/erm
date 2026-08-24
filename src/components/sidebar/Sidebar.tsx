@@ -49,6 +49,8 @@ const deliveryDistanceKm = useDesignerStore((s) => s.deliveryDistanceKm);
 const setDeliveryCity = useDesignerStore((s) => s.setDeliveryCity);
 const layoutImageBase64 = useDesignerStore((s) => s.layoutImageBase64); // <--- ДОБАВИТЬ ЭТО
  const [leadPopupData, setLeadPopupData] = useState<{webhookPayload: any, pdfConfig: any} | null>(null);
+ const hasIncline = useDesignerStore((s) => s.hasIncline);
+const setHasIncline = useDesignerStore((s) => s.setHasIncline);
 
   const price = calcPrice(
   fenceItems,
@@ -87,6 +89,15 @@ const selectedRalItem = RAL_COLORS.find((ral) => ral.hex === selectedRal);
       {/* ШАГ 1 */}
       <Section id="tour-step1" step="1" label={t('step1')}>
         <HeightDropdown value={fenceHeightCm} onChange={setFenceHeight} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 0 }}>
+  <input 
+    type="checkbox" 
+    id="inclineCheck" 
+    checked={hasIncline} 
+    onChange={(e) => setHasIncline(e.target.checked)} 
+  />
+  <label htmlFor="inclineCheck" style={{ fontSize: 11, fontWeight: 600 }}>{t('inclineMessage')}</label>
+</div>
       </Section>
 
       <Divider />
@@ -145,7 +156,7 @@ const selectedRalItem = RAL_COLORS.find((ral) => ral.hex === selectedRal);
       <div style={{ display: "flex", gap: 10, flex: 1, minHeight: 0 }}>
 
         {/* ЛЕВАЯ — степы 3, 4, кнопки */}
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 6 }}>
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 3 }}>
 
           <Section step="3" label={t('step3')}>
             <div id="tour-step3">

@@ -29,6 +29,17 @@ function distPx(a: Point, b: Point): number {
   return Math.hypot(b.x - a.x, b.y - a.y);
 }
 
+// ФУНКЦИЯ ДЛЯ ПРИМАГНИЧИВАНИЯ К ЛИНИИ ЗАБОРА
+function getClosestPointOnLine(p: Point, a: Point, b: Point) {
+  const atob = { x: b.x - a.x, y: b.y - a.y };
+  const atop = { x: p.x - a.x, y: p.y - a.y };
+  const len2 = atob.x * atob.x + atob.y * atob.y;
+  if (len2 === 0) return { x: a.x, y: a.y };
+  let dot = atop.x * atob.x + atop.y * atob.y;
+  const t = Math.max(0, Math.min(1, dot / len2));
+  return { x: a.x + atob.x * t, y: a.y + atob.y * t };
+}
+
 export default function FencePlanEditor() {
   const points        = useDesignerStore((s) => s.boundaryPoints);
   const addPoint      = useDesignerStore((s) => s.addPoint);
@@ -39,6 +50,19 @@ export default function FencePlanEditor() {
   const addHouse      = useDesignerStore((s) => s.addHouse);
   const updateHouse   = useDesignerStore((s) => s.updateHouse);
   const removeHouse   = useDesignerStore((s) => s.removeHouse);
+
+  // ВОРОТА ИЗ СТОРА
+  const gates         = useDesignerStore((s) => s.gates);
+  const addGate       = useDesignerStore((s) => s.addGate);
+  const removeGate    = useDesignerStore((s) => s.removeGate);
+
+  const hasIncline = useDesignerStore((s) => s.hasIncline);
+  const [pendingPos, setPendingPos] = useState<Point | null>(null);
+  const [elevationInput, setElevationInput] = useState<string>("0");
+
+  // СТЕЙТЫ ДЛЯ ПОПАПА ВОРОТ
+  const [pendingGate, setPendingGate] = useState<{ x: number; y: number; angle: number } | null>(null);
+  const [gateWidthInput, setGateWidthInput] = useState<string>("4");
   
   // ─── ДОБАВЛЕНО: Достаем функцию для сохранения картинки ───
   const setLayoutImageBase64 = useDesignerStore((s) => s.setLayoutImageBase64);
@@ -48,7 +72,7 @@ export default function FencePlanEditor() {
 
   const containerRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState<Size>({ w: 1000, h: 800 });
-  const [cursor, setCursor]       = useState<Point | null>(null);
+  const [cursor, setCursor]       = useState<{ x: number; y: number; angle?: number } | null>(null);
   const [scale, setScale] = useState(0.3);
   const [stagePos, setStagePos] = useState({ x: 400, y: 300 });
   const [isDrawing, setIsDrawing] = useState(false);
@@ -80,23 +104,38 @@ export default function FencePlanEditor() {
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [points, houses, scale, stagePos, setLayoutImageBase64]);
+  }, [points, houses, gates, scale, stagePos, setLayoutImageBase64]);
   // ───────────────────────────────────────────────────────────────
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.code === 'Space') {
+      // ПРОВЕРЯЕМ, НЕ ПЕЧАТАЕТ ЛИ СЕЙЧАС ПОЛЬЗОВАТЕЛЬ В КАКОМ-ТО INPUT ИЛИ TEXTAREA
+      const target = e.target as HTMLElement;
+      const isTyping = target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA');
+
+      if (e.code === 'Space' && !isTyping) {
         e.preventDefault();
         spacePressedRef.current = true;
         if (containerRef.current) containerRef.current.style.cursor = 'grab';
       }
 
-      if (activeTool === 'fence' && (e.key === 'Escape')) {
+      if (pendingPos || pendingGate) {
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          setPendingPos(null);
+          setPendingGate(null);
+          setElevationInput("0");
+        }
+        return;
+      }
+
+      if (activeTool === 'fence' && e.key === 'Escape') {
         setIsDrawing(false);
         setCursor(null);
       }
 
       if (
+        !isTyping && // <--- ВОТ ГЛАВНАЯ ПРАВКА: ИГНОРИРУЕМ BACKSPACE, ЕСЛИ ПЕЧАТАЕМ ТЕКСТ
         activeTool === 'fence' &&
         (e.key === 'Backspace' || e.key === 'Delete') &&
         points.length > 0
@@ -127,7 +166,7 @@ export default function FencePlanEditor() {
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('keyup', onKeyUp);
     };
-  }, [activeTool, points, rebuildFence]);
+  }, [activeTool, points, rebuildFence, pendingPos, pendingGate]);
 
   function handleWheel(e: KonvaEventObject<WheelEvent>) {
     e.evt.preventDefault();
@@ -155,6 +194,20 @@ export default function FencePlanEditor() {
     });
   }
 
+  // 3. Create a helper function to finalize the point:
+  function finalizePoint(pos: Point, elevation: number) {
+    const newPoint = { ...pos, elevation };
+    if (!isDrawing) {
+      useDesignerStore.setState({ boundaryPoints: [newPoint] });
+      setIsDrawing(true);
+    } else {
+      addPoint(newPoint);
+    }
+    rebuildFence();
+    setPendingPos(null);
+    setElevationInput("0");
+  }
+
   function getScenePos(stage: Konva.Stage): Point | null {
     const pos = stage.getPointerPosition();
     if (!pos) return null;
@@ -165,14 +218,14 @@ export default function FencePlanEditor() {
   }
 
   function handleClick(e: KonvaEventObject<MouseEvent>) {
-    if (spacePressedRef.current) return;
+    if (spacePressedRef.current || pendingPos || pendingGate) return;
 
     const targetName = e.target.name();
     const isHandle = targetName === 'handle' || targetName === 'house-body';
     
     if (activeTool === "fence") {
       if (e.target !== e.target.getStage() && targetName !== "bg") return;
-    } else if (activeTool === "house") {
+    } else if (activeTool === "house" || activeTool === "gate") {
       if (isHandle) return;
     }
 
@@ -181,23 +234,20 @@ export default function FencePlanEditor() {
     const pos = getScenePos(stage);
     if (!pos) return;
 
-    const snapped = {
-      x: snapToGrid(pos.x, STEP, scale),
-      y: snapToGrid(pos.y, STEP, scale),
-    };
+    const snapped = { x: snapToGrid(pos.x, STEP, scale), y: snapToGrid(pos.y, STEP, scale) };
 
     if (activeTool === "fence") {
-      if (!isDrawing) {
-        useDesignerStore.setState({ boundaryPoints: [snapped] });
-        setIsDrawing(true);
-        rebuildFence();
+      if (hasIncline) {
+        setPendingPos(snapped); // Pause to ask for elevation
         return;
       }
-      addPoint(snapped);
-      rebuildFence();
+      finalizePoint(snapped, 0);
     } else if (activeTool === "house") {
       addHouse(snapped.x, snapped.y);
       rebuildFence();
+    } else if (activeTool === "gate" && cursor?.angle !== undefined) {
+      // КЛИК ДЛЯ ДОБАВЛЕНИЯ ВОРОТ
+      setPendingGate({ x: cursor.x, y: cursor.y, angle: cursor.angle });
     }
   }
 
@@ -224,6 +274,25 @@ export default function FencePlanEditor() {
     if (!stage) return;
     const pos = getScenePos(stage);
     if (!pos) return;
+
+    // ПРИМАГНИЧИВАНИЕ ВОРОТ К ЛИНИИ ЗАБОРА
+    if (activeTool === "gate" && points.length >= 2) {
+      let minDist = 40 / scale;
+      let bestSnap = null;
+      for (let i = 0; i < points.length - 1; i++) {
+        const p1 = points[i];
+        const p2 = points[i+1];
+        const pt = getClosestPointOnLine(pos, p1, p2);
+        const d = Math.hypot(pt.x - pos.x, pt.y - pos.y);
+        if (d < minDist) {
+          minDist = d;
+          bestSnap = { x: pt.x, y: pt.y, angle: Math.atan2(p2.y - p1.y, p2.x - p1.x) };
+        }
+      }
+      setCursor(bestSnap);
+      return;
+    }
+
     setCursor({
       x: snapToGrid(pos.x, STEP, scale),
       y: snapToGrid(pos.y, STEP, scale),
@@ -405,6 +474,65 @@ export default function FencePlanEditor() {
         {Math.round(scale * 100)}%
       </div>
 
+      {pendingPos && (
+        <div className="configurator-popup">
+          <label>{t("elevationLabel") || "Elevation (meters):"}</label>
+          <div className="popup-row">
+            <input 
+              type="number" 
+              step="0.1" 
+              value={elevationInput} 
+              onChange={(e) => setElevationInput(e.target.value)} 
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  finalizePoint(pendingPos, parseFloat(elevationInput) || 0);
+                }
+              }}
+              autoFocus
+            />
+            <button onClick={() => finalizePoint(pendingPos, parseFloat(elevationInput) || 0)} className="viewport-btn is-active is-active-red">
+              {t("btnAdd") || "Add"}
+            </button>
+            <button onClick={() => setPendingPos(null)} className="viewport-btn">
+              {t("btnCancel") || "Cancel"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ПОПАП ВОРОТ */}
+      {pendingGate && (
+        <div className="configurator-popup">
+          <label>{t("gateWidthLabel") || "Gate width (meters):"}</label>
+          <div className="popup-row">
+            <input 
+              type="number" 
+              step="0.5" 
+              value={gateWidthInput} 
+              onChange={(e) => setGateWidthInput(e.target.value)} 
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  const w = parseFloat(gateWidthInput) || 4;
+                  addGate(pendingGate.x, pendingGate.y, w * 50, pendingGate.angle);
+                  setPendingGate(null);
+                }
+              }}
+              autoFocus
+            />
+            <button onClick={() => {
+              const w = parseFloat(gateWidthInput) || 4;
+              addGate(pendingGate.x, pendingGate.y, w * 50, pendingGate.angle);
+              setPendingGate(null);
+            }} className="viewport-btn is-active is-active-red">
+              {t("btnAddGate") || "Add"}
+            </button>
+            <button onClick={() => setPendingGate(null)} className="viewport-btn">
+              {t("btnCancel") || "Cancel"}
+            </button>
+          </div>
+        </div>
+      )}
+
       <Stage
         ref={stageRef}
         width={size.w}
@@ -429,6 +557,7 @@ export default function FencePlanEditor() {
           <Rect name="bg" x={-5000} y={-5000} width={10000} height={10000} fill="#f5f5f5" />
           <Grid width={size.w} height={size.h} step={STEP} metersPerCell={METERS_PER_CELL} scale={scale} />
 
+          {/* ПРАВКА 1: Отрисовка уже существующих точек и линий не прерывается */}
           {points.length > 1 && (
             <Line
               points={points.flatMap((p) => [p.x, p.y])}
@@ -439,6 +568,28 @@ export default function FencePlanEditor() {
                 points[0].x === points[points.length - 1].x &&
                 points[0].y === points[points.length - 1].y
               }
+            />
+          )}
+
+          {/* Временная линия и точка до pendingPos, чтобы они не пропадали */}
+          {pendingPos && lastPoint && (
+            <Line
+              points={[lastPoint.x, lastPoint.y, pendingPos.x, pendingPos.y]}
+              stroke="#d3001b"
+              strokeWidth={2 / scale}
+              dash={[8 / scale, 4 / scale]}
+              listening={false}
+            />
+          )}
+          {pendingPos && (
+            <Circle
+              x={pendingPos.x}
+              y={pendingPos.y}
+              radius={6 / scale}
+              fill="#ff6600"
+              stroke="#fff"
+              strokeWidth={2 / scale}
+              listening={false}
             />
           )}
 
@@ -463,7 +614,7 @@ export default function FencePlanEditor() {
             );
           })}
 
-          {lastPoint && cursor && activeTool === "fence" && isDrawing && (
+          {lastPoint && cursor && activeTool === "fence" && isDrawing && !pendingPos && (
             <Line
               points={[lastPoint.x, lastPoint.y, cursor.x, cursor.y]}
               stroke="#d3001b"
@@ -473,7 +624,7 @@ export default function FencePlanEditor() {
             />
           )}
 
-          {dragMid && dragLengthM !== null && dragLengthM > 0 && (
+          {dragMid && dragLengthM !== null && dragLengthM > 0 && !pendingPos && (
             <>
               <Rect
                 x={dragMid.x - 22 / scale}
@@ -521,15 +672,22 @@ export default function FencePlanEditor() {
             />
           ))}
 
-          {cursor && (
-            <Circle
-              x={cursor.x}
-              y={cursor.y}
-              radius={4 / scale}
-              fill={activeTool === "fence" ? "#d3001b" : "#f0a500"}
-              opacity={0.7}
-              listening={false}
-            />
+          {/* ПРЕВЬЮ ВОРОТ ИЛИ ОБЫЧНЫЙ КУРСОР */}
+          {cursor && !pendingPos && (
+            activeTool === "gate" && cursor.angle !== undefined ? (
+              <Group x={cursor.x} y={cursor.y} rotation={(cursor.angle * 180) / Math.PI}>
+                <Rect x={-100} y={-4 / scale} width={200} height={8 / scale} fill="#2c3e50" opacity={0.6} />
+              </Group>
+            ) : (
+              <Circle
+                x={cursor.x}
+                y={cursor.y}
+                radius={4 / scale}
+                fill={activeTool === "fence" ? "#d3001b" : "#f0a500"}
+                opacity={0.7}
+                listening={false}
+              />
+            )
           )}
 
           {houses.map((house) => (
@@ -540,6 +698,37 @@ export default function FencePlanEditor() {
               onUpdate={(patch) => { updateHouse(house.id, patch); rebuildFence(); }}
               onRemove={() => { removeHouse(house.id); rebuildFence(); }}
             />
+          ))}
+
+          {/* ОТРИСОВКА ВОРОТ НА КАНВАСЕ */}
+          {gates.map((gate) => (
+            <Group 
+              key={gate.id} 
+              x={gate.x} 
+              y={gate.z} 
+              rotation={(gate.rotation * 180) / Math.PI}
+              onDblClick={() => removeGate(gate.id)}
+            >
+              <Rect
+                x={-gate.widthPx / 2}
+                y={-12 / scale}
+                width={gate.widthPx}
+                height={24 / scale}
+                fill="#2c3e50"
+                cornerRadius={4 / scale}
+              />
+              <Text
+                x={-gate.widthPx / 2}
+                y={-5 / scale}
+                width={gate.widthPx}
+                text={`GATE (${pxToMeters(gate.widthPx)}m)`}
+                fontSize={11 / scale}
+                fill="#fff"
+                align="center"
+                fontStyle="bold"
+                listening={false}
+              />
+            </Group>
           ))}
         </Layer>
       </Stage>

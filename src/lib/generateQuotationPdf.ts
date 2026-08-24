@@ -227,7 +227,7 @@ export async function generateQuotationPdf(data: QuotationData): Promise<string>
       tableRows.push([
         ref ? `${safe(row.label)}\n${safe(ref)}` : safe(row.label),
         row.count,
-        `${safe(unitPrice)} €/m²`,
+        `${safe(unitPrice)} €/Unit`,
         '23%',
         `${safe(row.total)} €`,
       ]);
