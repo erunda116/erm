@@ -209,9 +209,6 @@ const getTrackingData = () => {
 
         {isSubmitted ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12, textAlign: 'center', padding: '16px 0' }}>
-            <div style={{ fontSize: 20 }}>
-              {t('discountPromo' as any) || `Tell your manager your quotation number and get an extra 5% discount on your order.`}
-            </div>
             <div style={{ fontSize: 40 }}>📩</div>
             <div style={{ fontSize: 13, color: '#aaa', lineHeight: 1.4 }}>
               {t('popupThankYouDesc' as any) || `Your quotation has been sent to ${email}. Please check your inbox (and spam folder) shortly!`}
