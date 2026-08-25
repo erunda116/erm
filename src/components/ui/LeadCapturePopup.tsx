@@ -12,11 +12,14 @@ export default function LeadCapturePopup({ webhookPayload, onGeneratePdf, onClos
   const t = useT();
   const locale = useDesignerStore((s) => s.locale);
 
+  const recordedVideoBlob = useDesignerStore((s) => s.recordedVideoBlob);
+
   // Ссылка на форму для изоляции событий клавиатуры от canvas
   const formRef = useRef<HTMLFormElement>(null);
 
   // 1. Изолируем Space и Backspace внутри инпутов, чтобы холст их не перехватывал
   useEffect(() => {
+    window.dispatchEvent(new Event("stop-3d-recording"));
     const formElement = formRef.current;
     if (!formElement) return;
 
@@ -96,34 +99,66 @@ const getTrackingData = () => {
   };
 };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+ const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
     try {
-      // 1. Generate the PDF silently in the background
+      // 1. Генерируем PDF
       const base64Pdf = await onGeneratePdf(); 
+
+      // ─── ИЗМЕНЕНИЕ: КОНВЕРТИРУЕМ ВИДЕО В BASE64 ДЛЯ ОТПРАВКИ ПРЯМО В N8N ───
+      let videoBase64 = null;
+      if (recordedVideoBlob) {
+        try {
+          videoBase64 = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(recordedVideoBlob);
+            reader.onloadend = () => {
+              if (reader.result) {
+                // Убираем технический префикс "data:video/webm;base64,"
+                const base64data = (reader.result as string).split(',')[1];
+                resolve(base64data);
+              } else {
+                resolve(null);
+              }
+            };
+            reader.onerror = reject;
+          });
+        } catch (err) {
+          console.warn('Video to Base64 failed:', err);
+        }
+      }
+      // ────────────────────────────────────────────────────────────────────────
 
       // 2. Attach the customer data AND the PDF file to the payload
       const trackingData = getTrackingData();
 
-const finalPayload = {
-  ...webhookPayload,
+      const finalPayload = {
+        ...webhookPayload,
 
-  customer: { 
-    name: name.trim(), 
-    email: email.trim(), 
-    phone: `${activeCountry.code} ${phoneNumber.trim()}`
-  },
+        customer: { 
+          name: name.trim(), 
+          email: email.trim(), 
+          phone: `${activeCountry.code} ${phoneNumber.trim()}`
+        },
 
-  tracking: trackingData,
+        tracking: trackingData,
 
-  fileData: {
-    filename: `${webhookPayload.quoteId}.pdf`,
-    mimeType: 'application/pdf',
-    base64: base64Pdf
-  }
-};
+        fileData: {
+          filename: `${webhookPayload.quoteId}.pdf`,
+          mimeType: 'application/pdf',
+          base64: base64Pdf
+        },
+
+        // ─── ОТПРАВЛЯЕМ ВИДЕО КАК ОТДЕЛЬНЫЙ ФАЙЛ В N8N ───
+        videoData: videoBase64 ? {
+          filename: `${webhookPayload.quoteId}-tour.webm`,
+          mimeType: 'video/webm',
+          base64: videoBase64
+        } : null
+        // ────────────────────────────────────────────────
+      };
 
       // 3. Send everything to n8n
       const response = await fetch('https://n8n.euromuro.eu/webhook/569b8abb-3c06-428d-8de4-8fc99a7d2944', {
@@ -137,11 +172,11 @@ const finalPayload = {
       }
 
       window.parent.postMessage(
-  {
-    type: 'euromuro_calculator_lead'
-  },
-  'https://euromuro.eu'
-);
+        {
+          type: 'euromuro_calculator_lead'
+        },
+        'https://euromuro.eu'
+      );
       
       setIsSubmitted(true);
     } catch (error) {
@@ -174,6 +209,9 @@ const finalPayload = {
 
         {isSubmitted ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12, textAlign: 'center', padding: '16px 0' }}>
+            <div style={{ fontSize: 20 }}>
+              {t('discountPromo' as any) || `Tell your manager your quotation number and get an extra 5% discount on your order.`}
+            </div>
             <div style={{ fontSize: 40 }}>📩</div>
             <div style={{ fontSize: 13, color: '#aaa', lineHeight: 1.4 }}>
               {t('popupThankYouDesc' as any) || `Your quotation has been sent to ${email}. Please check your inbox (and spam folder) shortly!`}

@@ -1,6 +1,6 @@
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls, useTexture, Environment, ContactShadows } from "@react-three/drei";
-import { Suspense, useMemo, useRef } from "react";
+import { Suspense, useMemo, useRef, useEffect } from "react";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { useDesignerStore } from "../../store/useDesignerStore";
 import PillarModel from "./PillarModel";
@@ -10,6 +10,60 @@ import ProceduralGate from "./ProceduralGate";
 import * as THREE from "three";
 
 const SCALE = 50;
+
+// ─── КОМПОНЕНТ ДЛЯ АВТОМАТИЧЕСКОЙ ЗАПИСИ ВИДЕО ───
+// ─── КОМПОНЕНТ ДЛЯ АВТОМАТИЧЕСКОЙ ЗАПИСИ ВИДЕО ───
+function AutoVideoRecorder() {
+  const { gl } = useThree();
+  const setRecordedVideoBlob = useDesignerStore((s) => s.setRecordedVideoBlob);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+
+  useEffect(() => {
+    try {
+      const stream = gl.domElement.captureStream(30); 
+      const recorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+      mediaRecorderRef.current = recorder;
+
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) chunksRef.current.push(e.data);
+      };
+
+      recorder.onstop = () => {
+        if (chunksRef.current.length > 0) {
+          const blob = new Blob(chunksRef.current, { type: 'video/webm' });
+          setRecordedVideoBlob(blob);
+          chunksRef.current = [];
+        }
+      };
+
+      recorder.start(500);
+
+      // Принудительная остановка по событию (когда открывается форма)
+      const forceStop = () => {
+         if (mediaRecorderRef.current?.state === "recording") {
+           mediaRecorderRef.current.stop();
+         }
+      };
+      window.addEventListener("stop-3d-recording", forceStop);
+
+      // Максимум 10 секунд записи, если форму не открыли раньше
+      const timer = setTimeout(forceStop, 20000);
+
+      return () => {
+        clearTimeout(timer);
+        window.removeEventListener("stop-3d-recording", forceStop);
+        forceStop();
+      };
+    } catch (e) {
+      console.warn("MediaRecorder failed:", e);
+    }
+  }, [gl, setRecordedVideoBlob]);
+
+  return null;
+}
+// ────────────────────────────────────────────────
+// ────────────────────────────────────────────────
 
 function getElevationAt(vx: number, vz: number, posts: any[]) {
   if (posts.length === 0) return 0;
@@ -139,8 +193,9 @@ export default function Scene() {
     return rows[rowIndex] ?? rows[0];
   }
 
-  return (
-    <Canvas camera={{ position: [0, 15, 25], fov: 50 }} style={{ width: "100%", height: "100%" }} gl={{ localClippingEnabled: true }} shadows>
+ return (
+    <Canvas camera={{ position: [0, 15, 25], fov: 50 }} style={{ width: "100%", height: "100%" }} gl={{ localClippingEnabled: true, preserveDrawingBuffer: true }} shadows>
+      <AutoVideoRecorder />
       <Environment preset="park" background={false} />
       <hemisphereLight args={['#ffffff', '#444444', 0.6]} />
       <directionalLight position={[15, 20, 10]} intensity={1.5} castShadow shadow-mapSize={[2048, 2048]} shadow-bias={-0.0001}>

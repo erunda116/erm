@@ -120,6 +120,9 @@ type DesignerStore = {
   layoutImageBase64: string | undefined;
   setLayoutImageBase64: (img: string | undefined) => void;
 
+  recordedVideoBlob: Blob | null;
+  setRecordedVideoBlob: (blob: Blob | null) => void;
+
   addPoint: (p: Point) => void;
   setFenceHeight: (cm: number) => void;
   setSingleModel: (val: boolean) => void;
@@ -169,6 +172,8 @@ export const useDesignerStore = create<DesignerStore>((set, get) => ({
   locale: 'en',
   hasIncline: false,
   setHasIncline: (v) => set({ hasIncline: v }),
+  recordedVideoBlob: null,
+  setRecordedVideoBlob: (blob) => set({ recordedVideoBlob: blob }),
 
   layoutImageBase64: undefined,
   setLayoutImageBase64: (img) => set({ layoutImageBase64: img }),
@@ -274,6 +279,7 @@ export const useDesignerStore = create<DesignerStore>((set, get) => ({
     deliveryDistanceKm: 0,
     deliveryCost: 0,
     layoutImageBase64: undefined,
+    recordedVideoBlob: null,
   }),
 
   setActiveTool: (tool) => set({ activeTool: tool }),
